@@ -1,0 +1,175 @@
+import Link from 'next/link';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowRight,
+  ChartNoAxesCombined,
+} from 'lucide-react';
+import { Heading } from '@/components/Heading';
+import { MovementList } from '@/features/ledger/MovementList';
+import { history, summary } from '@/features/ledger/queries';
+import { historyFilters } from '@/features/ledger/filters';
+import { today, period, monthLabel, validDate } from '@/lib/dates';
+import { money, percent } from '@/lib/money';
+import { summarize } from '@/lib/summary';
+import ui from '@/components/ui.module.scss';
+import s from './dashboard.module.scss';
+export const metadata = { title: 'Resumen' };
+
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const { mes } = await searchParams;
+  const month = mes || today().slice(0, 7);
+  if (!validDate(month + '-01'))
+    return (
+      <>
+        <Heading title="Resumen" />
+        <p role="alert">
+          El mes indicado es inválido.{' '}
+          <Link href="/resumen">Ver mes actual</Link>
+        </p>
+      </>
+    );
+  const { start, end } = period(month);
+  const [groups, recent] = await Promise.all([
+    summary(start, end),
+    history(historyFilters({ desde: start, hasta: end }), 5),
+  ]);
+  const data = summarize(groups);
+  const weeks = data.weeks.slice(0, Math.ceil(Number(end.slice(-2)) / 7));
+  const max = weeks.reduce(
+    (largest, w) =>
+      [largest, w.income, w.expense].reduce((a, b) => (a > b ? a : b)),
+    0n,
+  );
+  return (
+    <>
+      <Heading title="Resumen" description={monthLabel(month)}>
+        <form className={ui.actions}>
+          <label className={ui.sr} htmlFor="month">
+            Mes del resumen
+          </label>
+          <input
+            id="month"
+            type="month"
+            name="mes"
+            defaultValue={month}
+            required
+          />
+          <button className={ui.secondary}>Ver mes</button>
+        </form>
+      </Heading>
+      <div className={s.metrics}>
+        {[
+          {
+            title: 'Saldo neto del mes',
+            value: data.net,
+            icon: ChartNoAxesCombined,
+            style: s.net,
+          },
+          {
+            title: 'Ingresos',
+            value: data.income,
+            icon: ArrowDownLeft,
+            style: s.income,
+          },
+          {
+            title: 'Gastos',
+            value: data.expense,
+            icon: ArrowUpRight,
+            style: s.expense,
+          },
+        ].map(({ title, value, icon: Icon, style }) => (
+          <section key={title} className={style}>
+            <div>
+              <span>{title}</span>
+              <Icon size={20} />
+            </div>
+            <strong>{money(value)}</strong>
+          </section>
+        ))}
+      </div>
+      <div className={s.charts}>
+        <section className={ui.panel}>
+          <h2>Ingresos y gastos</h2>
+          <p>Por semana del mes</p>
+          {max === 0n ? (
+            <div className={ui.empty}>
+              El gráfico se completa al registrar un movimiento.
+            </div>
+          ) : (
+            <>
+              <div className={s.legend}>
+                <span>Ingresos</span>
+                <span>Gastos</span>
+              </div>
+              <div className={s.plot} aria-hidden="true">
+                {weeks.map((w, i) => (
+                  <div key={i}>
+                    <div>
+                      <i style={{ height: percent(w.income, max) + '%' }} />
+                      <i style={{ height: percent(w.expense, max) + '%' }} />
+                    </div>
+                    <small>Sem. {i + 1}</small>
+                  </div>
+                ))}
+              </div>
+              <details>
+                <summary>Ver importes por semana</summary>
+                <ul>
+                  {weeks.map((w, i) => (
+                    <li key={i}>
+                      Semana {i + 1} · Ingresos {money(w.income)} · Gastos{' '}
+                      {money(w.expense)}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </>
+          )}
+        </section>
+        <section className={ui.panel}>
+          <h2>Gastos por categoría</h2>
+          <p>Distribución del mes</p>
+          {data.categories.length ? (
+            <ul className={s.categories}>
+              {data.categories.map(([name, value]) => (
+                <li key={name}>
+                  <div>
+                    <strong>{name}</strong>
+                    <span>{money(value)}</span>
+                  </div>
+                  <progress
+                    aria-label={'Participación de ' + name}
+                    max={100}
+                    value={percent(value, data.expense)}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className={ui.empty}>Todavía no hay gastos en este mes.</div>
+          )}
+        </section>
+      </div>
+      <section className={ui.panel}>
+        <div className={ui.between}>
+          <h2>Últimos movimientos</h2>
+          <Link
+            className={ui.textLink}
+            href={'/movimientos?desde=' + start + '&hasta=' + end}
+          >
+            Ver historial <ArrowRight size={15} />
+          </Link>
+        </div>
+        <MovementList
+          rows={recent.rows}
+          empty="Todavía no registraste movimientos en este mes."
+        />
+      </section>
+    </>
+  );
+}

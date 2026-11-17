@@ -1,0 +1,188 @@
+.page {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.cover {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+  background: #153d31;
+  color: #f3f7ea;
+  padding: clamp(2rem, 5vw, 5.5rem);
+}
+.coverText {
+  position: relative;
+  max-width: 440px;
+}
+.coverText h2 {
+  font-size: clamp(2.9rem, 5.5vw, 6rem);
+  letter-spacing: -0.065em;
+  font-weight: 590;
+  line-height: 0.99;
+}
+.coverText p {
+  color: #c3d8c8;
+  margin-top: 1.4rem;
+  max-width: 35ch;
+}
+.illustration {
+  position: relative;
+  min-height: 285px;
+  width: min(100%, 460px);
+  margin: 2rem auto;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.orbit,
+.orbitInner {
+  position: absolute;
+  width: 100%;
+  height: 70%;
+  border: 1px solid #51735d;
+  border-radius: 50%;
+  transform: rotate(-27deg);
+}
+.orbitInner {
+  width: 85%;
+  height: 92%;
+  transform: rotate(25deg);
+  border-style: dashed;
+  opacity: 0.65;
+}
+.walletcard,
+.backcard {
+  position: absolute;
+  width: 58%;
+  aspect-ratio: 1.55;
+  border-radius: 18px;
+}
+.backcard {
+  background: repeating-linear-gradient(125deg, #446c52 0 3px, #41674f 3px 7px);
+  border: 1px solid #78917a;
+  transform: rotate(6deg) translate(7%, -9%);
+}
+.walletcard {
+  color: #24452b;
+  background: linear-gradient(115deg, #e1f6ba, #afcf8d);
+  transform: rotate(-11deg);
+  padding: clamp(0.9rem, 2vw, 1.8rem);
+  box-shadow: 0 18px 25px #092b2244;
+}
+.walletcard span {
+  display: block;
+  font-size: clamp(1.1rem, 2vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+.cardline {
+  width: 55%;
+  height: 3px;
+  background: #71965b;
+  margin-top: 0.65rem;
+}
+.cardline:last-child {
+  width: 33%;
+  margin-top: 0.3rem;
+}
+.coin,
+.bank {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: #e6f3ca;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid #62856c;
+  background: #315a43;
+}
+.coin {
+  left: 6%;
+  bottom: 13%;
+}
+.bank {
+  right: 6%;
+  top: 8%;
+}
+.entry {
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+.formBox {
+  width: min(100%, 385px);
+}
+.formBox h1 {
+  font-size: clamp(2.3rem, 4vw, 3.5rem);
+  letter-spacing: -0.055em;
+}
+.formBox > p {
+  color: var(--muted);
+  margin-block: 0.8rem 1.4rem;
+}
+.icon {
+  background: var(--soft);
+  color: var(--brand);
+  display: inline-grid;
+  place-items: center;
+  width: 47px;
+  height: 47px;
+  border-radius: 13px;
+  margin-bottom: 1.6rem;
+}
+.password {
+  margin-top: .4rem;
+  display: flex;
+  position: relative;
+}
+.password input {
+  padding-right: 3rem;
+}
+.password button {
+  background: none;
+  border: 0;
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 42px;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+.switch {
+  text-align: center;
+  font-size: 0.9rem;
+}
+.switch a {
+  font-weight: 650;
+}
+.mobileBrand {
+  display: none;
+}
+@media (max-width: 740px) {
+  .page {
+    display: block;
+    background: var(--surface);
+  }
+  .cover {
+    display: none;
+  }
+  .entry {
+    min-height: 100svh;
+    align-content: start;
+    gap: clamp(2.7rem, 9vh, 7rem);
+    padding: 1.5rem;
+  }
+  .mobileBrand {
+    display: block;
+    width: min(100%, 385px);
+  }
+  .formBox {
+    padding-bottom: 2rem;
+  }
+}

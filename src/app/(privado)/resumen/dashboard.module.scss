@@ -1,0 +1,138 @@
+.metrics {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.metrics section {
+  min-width: 0;
+  padding: 1.4rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.metrics section > div,
+.categories li > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.metrics strong {
+  font-size: clamp(1.5rem, 2.8vw, 2.7rem);
+  letter-spacing: -0.06em;
+  display: block;
+  margin-top: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+.metrics .net {
+  background: #1c4839;
+  color: #f4ffef;
+  border-color: #1c4839;
+}
+.net svg {
+  color: #d6f8a6;
+}
+.income svg {
+  color: var(--up-ink);
+}
+.expense svg {
+  color: var(--down-ink);
+}
+.charts {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+}
+.legend span::before {
+  content: '';
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #4a9476;
+  margin-right: 0.4rem;
+}
+.legend span + span::before {
+  background: #dd996c;
+}
+.plot {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.plot > div {
+  flex: 1;
+  text-align: center;
+}
+.plot > div > div {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 120px;
+  border-bottom: 1px solid var(--border);
+  background: repeating-linear-gradient(
+    to top,
+    transparent 0 39px,
+    var(--border) 39px 40px
+  );
+}
+.plot i {
+  width: 22%;
+  background: #4a9476;
+  border-radius: 3px 3px 0 0;
+}
+.plot i + i {
+  background: #dd996c;
+}
+.charts details {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.categories {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+.categories li {
+  margin-top: 0.8rem;
+}
+.categories progress {
+  width: 100%;
+  height: 0.52rem;
+  accent-color: #51866b;
+}
+.categories li > div {
+  font-size: 0.88rem;
+}
+@media (max-width: 960px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .net {
+    grid-column: 1/-1;
+  }
+  .charts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 460px) {
+  .metrics {
+    gap: 0.55rem;
+  }
+  .metrics section {
+    padding: 0.9rem;
+  }
+  .metrics strong {
+    font-size: 1.4rem;
+  }
+}

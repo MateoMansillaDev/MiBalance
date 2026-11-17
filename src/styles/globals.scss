@@ -1,0 +1,121 @@
+@mixin dark {
+  color-scheme: dark;
+  --bg: #101b19;
+  --surface: #192723;
+  --ink: #edf4ee;
+  --muted: #adc0b6;
+  --border: #364a42;
+  --brand: #98dab2;
+  --on-brand: #102d22;
+  --soft: #263e33;
+  --field: #15231e;
+  --down-bg: #483127;
+  --down-ink: #ffbda7;
+  --up-ink: #a6e9be;
+  --warn: #402f23;
+}
+:root {
+  color-scheme: light;
+  --bg: #f4f6f2;
+  --surface: #fff;
+  --ink: #192b24;
+  --muted: #56695f;
+  --border: #d9e1da;
+  --brand: #205e45;
+  --on-brand: #fff;
+  --soft: #e5f1e8;
+  --field: #fff;
+  --down-bg: #f9eae2;
+  --down-ink: #96452f;
+  --up-ink: #205d45;
+  --warn: #fff4de;
+  --radius: 16px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include dark;
+  }
+}
+:root[data-theme='dark'] {
+  @include dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2,
+h3 {
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+}
+h1 {
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+}
+h2 {
+  font-size: 1.24rem;
+}
+small {
+  font-size: 0.82rem;
+}
+a {
+  color: var(--brand);
+  text-underline-offset: 0.18em;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+button,
+summary {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+label,
+legend {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+input:not([type='radio']),
+select,
+textarea {
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  background: var(--field);
+}
+textarea {
+  resize: vertical;
+}
+:focus-visible {
+  outline: 3px solid #599bff;
+  outline-offset: 3px;
+}
+svg {
+  flex-shrink: 0;
+}
+p,
+strong,
+h2 {
+  overflow-wrap: anywhere;
+}
