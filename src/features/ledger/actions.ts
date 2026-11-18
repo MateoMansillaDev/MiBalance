@@ -22,7 +22,7 @@ const schemas = {
 };
 function databaseError(code: string) {
   if (code === '23503')
-    return 'Hay movimientos vinculados. Revisá la cuenta, la categoría y el tipo.';
+    return 'Revisá la cuenta, la categoría y el tipo. Puede haber movimientos, presupuestos o repeticiones vinculados.';
   if (code === '23505') return 'Ya existe un registro con ese nombre.';
   return 'No pudimos guardar los cambios. Revisá la conexión y volvé a intentar.';
 }
@@ -102,7 +102,7 @@ export async function remove(
     return {
       error:
         error.code === '23503'
-          ? 'Este registro tiene movimientos vinculados y se conserva en tu historial.'
+          ? 'Revisá los movimientos vinculados, presupuestos y repeticiones antes de eliminar este registro.'
           : databaseError(error.code),
     };
   if (!data) return { error: 'Ese registro ya no está disponible.' };

@@ -7,6 +7,7 @@ import {
   Wallet,
   Tags,
   Settings,
+  CalendarDays,
   LogOut,
   Plus,
   CircleUserRound,
@@ -18,6 +19,7 @@ import s from './shell.module.scss';
 const links = [
   { url: '/resumen', title: 'Resumen', icon: LayoutDashboard },
   { url: '/movimientos', title: 'Movimientos', icon: ArrowLeftRight },
+  { url: '/planificacion', title: 'Planificación', icon: CalendarDays },
   { url: '/cuentas', title: 'Cuentas', icon: Wallet },
   { url: '/categorias', title: 'Categorías', icon: Tags },
   { url: '/configuracion', title: 'Configuración', icon: Settings },

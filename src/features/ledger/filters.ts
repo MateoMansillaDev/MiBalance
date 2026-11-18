@@ -35,3 +35,22 @@ export function historyFilters(params: Params) {
   };
 }
 export type Filters = ReturnType<typeof historyFilters>;
+
+export function filterCriteria(f: Filters): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries({
+      desde: f.start,
+      hasta: f.end,
+      tipo: f.type,
+      cuenta: f.account,
+      categoria: f.category,
+      q: f.q,
+    }).filter(([, value]) => value !== ''),
+  );
+}
+
+export function filterQuery(f: Filters) {
+  const query = new URLSearchParams(filterCriteria(f));
+  if (f.ascending) query.set('orden', 'asc');
+  return query.toString();
+}

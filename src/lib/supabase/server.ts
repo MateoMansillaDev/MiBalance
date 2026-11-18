@@ -31,7 +31,7 @@ export const requireUser = cache(async () => {
   if (error && (error.name === 'AuthRetryableFetchError' || (error.status ?? 0) >= 500))
     throw new Error('No se pudo verificar la sesión.');
   if (!data.user || data.user.is_anonymous) redirect('/ingresar');
-  const init = await db.rpc('initialize_space');
+  const init = await db.rpc('refresh_space');
   if (init.error) throw new Error('No se pudo abrir tu espacio.');
   return { db, user: data.user };
 });

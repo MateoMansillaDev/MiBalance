@@ -2,6 +2,19 @@
 
 Aplicación personal para registrar ingresos y gastos en pesos argentinos. La Fase 1 incluye registro e inicio de sesión por correo, resumen mensual, gráficos semanales y por categoría, cuentas con saldo inicial, categorías editables e historial con filtros y paginación.
 
+## Fase 2 · Control y planificación
+
+**Planificación** reúne los presupuestos y los movimientos recurrentes. En una instalación local existente, iniciá Docker, ejecutá `npm run db:start` y luego `npx supabase migration up --local` antes de abrir la versión nueva.
+
+- **Presupuestos.** Elegí el mes, la categoría de gasto y el límite en ARS. Volver a guardar esa combinación actualiza el límite. La pantalla muestra el gasto registrado, el disponible o el exceso. Al llegar al 80 %, al alcanzar el límite y al superarlo, el resumen del mismo mes muestra un aviso dentro de la aplicación.
+- **Repeticiones.** Programá un ingreso o gasto semanal o mensual desde una fecha de calendario. Al acceder al área privada se registran los vencimientos pendientes hasta el día actual en Córdoba. Una regla mensual del día 31 usa el último día de un mes corto y recupera el día 31 cuando corresponde. PostgreSQL bloquea la regla y avanza su próxima fecha en la misma transacción que las altas. Podés finalizarla y conservar su historial. Con la app cerrada, los vencimientos quedan pendientes hasta el siguiente acceso.
+- **Reportes.** En Movimientos, el reporte muestra ingresos, gastos y neto para todas las filas que cumplen los filtros, incluso cuando abarcan varias páginas. Podés guardar la búsqueda, las fechas, el tipo, la cuenta, la categoría y el orden con un nombre. Al abrir ese filtro se vuelve a la primera página.
+- **CSV.** Exportá el resultado filtrado desde Movimientos. Si excede 300 registros, elegí el lote. Para importar, descargá la plantilla, completala y revisá la vista previa antes de confirmar. Se acepta UTF-8, hasta 300 registros y 850 kB por archivo. Un error de validación cancela el lote completo.
+
+El encabezado del CSV es `id;fecha;tipo;importe;cuenta;categoria;descripcion`. Usá fechas `AAAA-MM-DD`, tipos `ingreso` o `gasto`, importes en pesos y nombres de cuentas y categorías existentes. Los nombres pueden llevar punto y coma o comillas si se escapan según el formato CSV. La exportación protege las celdas de texto que una planilla podría interpretar como fórmulas.
+
+Con ID, la importación reconoce un movimiento propio exportado o una referencia previamente importada. Para filas sin ID compara fecha, tipo, centavos, cuenta, categoría y descripción. Dos operaciones legítimas con valores idénticos pueden distinguirse con UUID diferentes. Las importaciones simultáneas de un mismo usuario se serializan y el resultado final informa cuántas filas se agregaron y cuántas se omitieron.
+
 ## Inicio local con Supabase
 
 Necesitás Node.js 24 LTS, npm y Docker Desktop con el motor Linux iniciado. Ejecutá en la raíz del proyecto:
@@ -20,7 +33,7 @@ El script `db:env` crea `.env.local` con la URL y la clave **publicable** que de
 ## Conectar un proyecto Supabase propio
 
 1. Copiá `.env.example` a `.env.local`. Cargá la URL del proyecto en `NEXT_PUBLIC_SUPABASE_URL` y su clave publicable en `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Las dos deben pertenecer a la misma instancia.
-2. Aplicá la migración versionada de `supabase/migrations/` a la base elegida después de revisar el destino. La app espera el esquema en `public` y acceso mediante Data API.
+2. Aplicá las migraciones versionadas de `supabase/migrations/` en orden, después de revisar el destino. La app espera el esquema en `public` y acceso mediante Data API.
 3. Habilitá el proveedor Email/Password y mantené deshabilitados los inicios anónimos. Para solicitar confirmación por correo, configurá una Site URL de confianza en Auth y usá este enlace en la plantilla **Confirm signup**:
 
    ```html
@@ -74,4 +87,4 @@ La entrega y verificación corresponden a la instalación local. En un proyecto 
 
 ## Estado de dependencias
 
-En la revisión del 17 de noviembre de 2026, `npm audit --omit=dev` señaló dos entradas de severidad alta, correspondientes a `picomatch` y a su dependencia inversa `@parcel/watcher`. La corrección compatible sugerida por npm también conservaba el aviso. MiBalance compila los SCSS con Sass Embedded y la búsqueda del historial utiliza PostgREST. El proyecto no usa patrones glob ingresados por usuarios. La actualización transitiva queda pendiente. [Aviso GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+El 18 de noviembre de 2026, la auditoría de dependencias de ejecución (`npm audit --omit=dev`) informó cero avisos en el lockfile de la Fase 2.

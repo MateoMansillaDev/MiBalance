@@ -3,6 +3,7 @@ import { Heading } from '@/components/Heading';
 import { accounts, categories, history } from '@/features/ledger/queries';
 import { historyFilters, type Params } from '@/features/ledger/filters';
 import { MovementList } from '@/features/ledger/MovementList';
+import { HistoryTools } from '@/features/ledger/HistoryTools';
 import ui from '@/components/ui.module.scss';
 export const metadata = { title: 'Movimientos' };
 export default async function HistoryPage({
@@ -93,6 +94,7 @@ export default async function HistoryPage({
           <Link href="/movimientos">Limpiar</Link>
         </div>
       </form>
+      {result && <HistoryTools filters={filters} count={result.count} />}
       {result ? (
         <section className={ui.panel}>
           <h2>

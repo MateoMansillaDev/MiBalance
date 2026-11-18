@@ -12,6 +12,7 @@ import { historyFilters } from '@/features/ledger/filters';
 import { today, period, monthLabel, validDate } from '@/lib/dates';
 import { money, percent } from '@/lib/money';
 import { summarize } from '@/lib/summary';
+import { budgets, budgetStatus } from '@/features/planning/queries';
 import ui from '@/components/ui.module.scss';
 import s from './dashboard.module.scss';
 export const metadata = { title: 'Resumen' };
@@ -34,10 +35,14 @@ export default async function Dashboard({
       </>
     );
   const { start, end } = period(month);
-  const [groups, recent] = await Promise.all([
+  const [groups, recent, limits] = await Promise.all([
     summary(start, end),
     history(historyFilters({ desde: start, hasta: end }), 5),
+    budgets(month),
   ]);
+  const alerts = limits.filter(
+    (b) => BigInt(b.spent_cents) * 5n >= BigInt(b.limit_cents) * 4n,
+  );
   const data = summarize(groups);
   const weeks = data.weeks.slice(0, Math.ceil(Number(end.slice(-2)) / 7));
   const max = weeks.reduce(
@@ -62,6 +67,21 @@ export default async function Dashboard({
           <button className={ui.secondary}>Ver mes</button>
         </form>
       </Heading>
+      {alerts.length > 0 && (
+        <section className={ui.notice} aria-label="Alertas de presupuesto">
+          <h2>Alertas de presupuesto</h2>
+          <ul>
+            {alerts.map((b) => (
+              <li key={b.id}>
+                {b.name} ·{' '}
+                {budgetStatus(BigInt(b.spent_cents), BigInt(b.limit_cents))} ·{' '}
+                {money(b.spent_cents)} de {money(b.limit_cents)}
+              </li>
+            ))}
+          </ul>
+          <Link href={'/planificacion?mes=' + month}>Revisar presupuestos</Link>
+        </section>
+      )}
       <div className={s.metrics}>
         {[
           {

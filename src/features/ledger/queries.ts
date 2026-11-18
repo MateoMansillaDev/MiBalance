@@ -6,9 +6,9 @@ import {
   type Movement,
 } from '@/lib/domain';
 import { z } from 'zod';
-import type { Filters } from './filters';
+import { filterCriteria, type Filters } from './filters';
 
-async function allRows<T>(
+export async function allRows<T>(
   fetchPage: (
     offset: number,
   ) => PromiseLike<{ data: T[] | null; error: unknown }>,
@@ -61,29 +61,36 @@ export async function movement(id: string) {
   return result.data;
 }
 export async function history(filters: Filters, size = 20) {
-  const { db, user } = await requireUser();
-  let query = db
-    .from('movement_history')
-    .select(fields, { count: 'exact' })
-    .eq('user_id', user.id);
-  if (filters.start) query = query.gte('occurred_on', filters.start);
-  if (filters.end) query = query.lte('occurred_on', filters.end);
-  if (filters.type) query = query.eq('type', filters.type);
-  if (filters.account) query = query.eq('account_id', filters.account);
-  if (filters.category) query = query.eq('category_id', filters.category);
-  if (filters.q)
-    query = query.ilike(
-      'description',
-      '%' + filters.q.replace(/[\\%_]/g, '\\$&') + '%',
-    );
+  const { db } = await requireUser();
+  const query = db
+    .rpc(
+      'filtered_history',
+      { criteria: filterCriteria(filters) },
+      { count: 'exact' },
+    )
+    .select(fields);
   const offset = (filters.page - 1) * size;
   const { data, count, error } = await query
     .order('occurred_on', { ascending: filters.ascending })
     .order('id', { ascending: filters.ascending })
-    .range(offset, offset + size - 1)
-    .returns<Movement[]>();
+    .range(offset, offset + size - 1);
   if (error) throw new Error('No se pudo consultar el historial.');
-  return { rows: data ?? [], count: count ?? 0 };
+  const rows = z
+    .array(
+      z.object({
+        id: z.uuid(),
+        account_id: z.uuid(),
+        category_id: z.uuid(),
+        type: direction,
+        account_name: z.string(),
+        category_name: z.string(),
+        amount_cents: z.string().regex(/^\d+$/),
+        occurred_on: z.string(),
+        description: z.string(),
+      }),
+    )
+    .parse(data);
+  return { rows, count: count ?? 0 };
 }
 export async function summary(start: string, end: string) {
   const { db } = await requireUser();
