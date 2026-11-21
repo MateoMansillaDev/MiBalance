@@ -102,7 +102,7 @@ export async function remove(
     return {
       error:
         error.code === '23503'
-          ? 'Revisá los movimientos vinculados, presupuestos y repeticiones antes de eliminar este registro.'
+          ? 'Revisá los movimientos vinculados, presupuestos, repeticiones, transferencias y metas antes de eliminar este registro.'
           : databaseError(error.code),
     };
   if (!data) return { error: 'Ese registro ya no está disponible.' };

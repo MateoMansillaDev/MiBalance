@@ -36,7 +36,11 @@ export default async function Planning({
       <Heading
         title="Planificación"
         description="Controlá tus límites de gasto y programá movimientos."
-      />
+      >
+        <Link href="/planificacion/metas" className={ui.secondary}>
+          Metas de ahorro
+        </Link>
+      </Heading>
       <section className={[ui.panel, s.section].join(' ')}>
         <div className={ui.between}>
           <div>

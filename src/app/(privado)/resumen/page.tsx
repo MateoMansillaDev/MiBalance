@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { Comparison } from '@/features/ledger/Comparison';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -20,9 +22,10 @@ export const metadata = { title: 'Resumen' };
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string }>;
+  searchParams: Promise<{ mes?: string; comparar?: string }>;
 }) {
-  const { mes } = await searchParams;
+  const { mes, comparar } = await searchParams;
+  const showComparison = (await cookies()).get('mb-compare')?.value !== 'hide';
   const month = mes || today().slice(0, 7);
   if (!validDate(month + '-01'))
     return (
@@ -54,6 +57,7 @@ export default async function Dashboard({
     <>
       <Heading title="Resumen" description={monthLabel(month)}>
         <form className={ui.actions}>
+          {comparar && <input type="hidden" name="comparar" value={comparar} />}
           <label className={ui.sr} htmlFor="month">
             Mes del resumen
           </label>
@@ -190,6 +194,9 @@ export default async function Dashboard({
           empty="Todavía no registraste movimientos en este mes."
         />
       </section>
+      {(showComparison || comparar) && (
+        <Comparison month={month} reference={comparar} current={data} />
+      )}
     </>
   );
 }
