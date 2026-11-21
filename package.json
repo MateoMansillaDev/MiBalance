@@ -14,7 +14,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:db": "node --test tests/database.test.mjs tests/planning.test.mjs tests/advanced.test.mjs",
+    "test:db": "node --test tests/database.test.mjs tests/planning.test.mjs tests/advanced.test.mjs tests/cards.test.mjs",
     "test:backup": "node --test tests/backup.test.mjs",
     "db:start": "supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
     "db:env": "node scripts/local-env.mjs"

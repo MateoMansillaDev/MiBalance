@@ -3,6 +3,8 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { save, remove, type Resource } from './actions';
 import {
+  categoryIcons,
+  currencies,
   directions,
   kinds,
   type Movement,
@@ -11,6 +13,9 @@ import {
   type Direction,
 } from '@/lib/domain';
 import { decimal } from '@/lib/money';
+import { categoryColor, iconSet } from '@/lib/categoryIcons';
+import { removeInstallments } from '@/features/accounts/advanced-actions';
+import { MutationForm } from '@/components/MutationForm';
 import ui from '@/components/ui.module.scss';
 
 function Form({
@@ -148,7 +153,17 @@ export function CatalogEditor({
               </select>
             </label>
             <label>
-              Saldo inicial (ARS)
+              Moneda
+              <select name="currency" defaultValue={account?.currency ?? 'ARS'}>
+                {Object.entries(currencies).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Saldo inicial (en la moneda de la cuenta)
               <input
                 inputMode="decimal"
                 name="opening_balance_cents"
@@ -158,16 +173,41 @@ export function CatalogEditor({
             </label>
           </>
         ) : (
-          <label>
-            Tipo
-            <select name="type" defaultValue={category?.type}>
-              {Object.entries(directions).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
+          <>
+            <label>
+              Tipo
+              <select name="type" defaultValue={category?.type}>
+                {Object.entries(directions).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className={ui.pair}>
+              <label>
+                Color
+                <input
+                  type="color"
+                  name="color"
+                  defaultValue={categoryColor(
+                    category?.name ?? '',
+                    category?.color,
+                  )}
+                />
+              </label>
+              <label>
+                Ícono
+                <select name="icon" defaultValue={category?.icon ?? 'tag'}>
+                  {categoryIcons.map((key) => (
+                    <option key={key} value={key}>
+                      {iconSet[key].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </>
         )}
       </Form>
       {item && <DeleteForm resource={resource} id={item.id} />}
@@ -186,7 +226,13 @@ export function MovementEditor({
   item?: Movement;
 }) {
   const [type, setType] = useState<Direction>(item?.type ?? 'expense');
+  const [accountId, setAccountId] = useState(
+    item?.account_id ?? accounts[0]?.id ?? '',
+  );
+  const [group] = useState(() => crypto.randomUUID());
   const choices = categories.filter((c) => c.type === type);
+  const account = accounts.find((a) => a.id === accountId);
+  const canSplit = !item && type === 'expense' && account?.kind === 'credit';
   return (
     <section className={ui.editor}>
       <Form resource="transactions" id={item?.id} cancel="/movimientos">
@@ -206,7 +252,8 @@ export function MovementEditor({
           ))}
         </fieldset>
         <label>
-          Importe (ARS)
+          {canSplit ? 'Importe total de la compra' : 'Importe'} (
+          {account?.currency ?? 'ARS'})
           <input
             className={ui.amount}
             inputMode="decimal"
@@ -219,10 +266,16 @@ export function MovementEditor({
         <div className={ui.pair}>
           <label>
             Cuenta
-            <select name="account_id" required defaultValue={item?.account_id}>
+            <select
+              name="account_id"
+              required
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+            >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
+                  {a.currency === 'USD' ? ' (USD)' : ''}
                 </option>
               ))}
             </select>
@@ -246,6 +299,24 @@ export function MovementEditor({
             </select>
           </label>
         </div>
+        {canSplit && (
+          <label>
+            Cantidad de cuotas
+            <select name="cuotas" defaultValue="1">
+              <option value="1">En un pago</option>
+              {[2, 3, 6, 9, 12, 18, 24].map((n) => (
+                <option key={n} value={n}>
+                  {n} cuotas
+                </option>
+              ))}
+            </select>
+            <small>
+              Cada cuota se registra como gasto en su mes, desde la fecha de la
+              compra.
+            </small>
+          </label>
+        )}
+        <input type="hidden" name="installment_group" value={group} />
         {!accounts.length && (
           <Link href="/cuentas?nueva=1">Crear una cuenta</Link>
         )}
@@ -255,7 +326,7 @@ export function MovementEditor({
           </Link>
         )}
         <label>
-          Fecha
+          {canSplit ? 'Fecha de la compra' : 'Fecha'}
           <input
             type="date"
             name="occurred_on"
@@ -273,6 +344,23 @@ export function MovementEditor({
           />
         </label>
       </Form>
+      {item?.installment_group && (
+        <div className={ui.notice}>
+          <p>
+            Cuota {item.installment_number} de {item.installment_count}. Los
+            cambios de arriba afectan solo a esta cuota.
+          </p>
+          <MutationForm
+            action={removeInstallments.bind(null, item.installment_group)}
+            submit="Eliminar la compra completa"
+            confirm={
+              '¿Eliminar las ' +
+              item.installment_count +
+              ' cuotas de esta compra?'
+            }
+          />
+        </div>
+      )}
       {item && <DeleteForm resource="transactions" id={item.id} />}
     </section>
   );

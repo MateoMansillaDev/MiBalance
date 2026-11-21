@@ -65,7 +65,7 @@ test('transferir, seguir una meta y personalizar la comparación entre meses', a
     await page
       .getByLabel('Cuenta de destino')
       .selectOption({ label: 'Ahorros' });
-    await page.getByLabel('Importe (ARS)').fill('20,01');
+    await page.getByLabel('Importe', { exact: true }).fill('20,01');
     await page.getByLabel('Fecha', { exact: true }).fill('2024-02-29');
     await page.getByRole('button', { name: 'Registrar transferencia' }).click();
     await expect(page.getByText('Efectivo → Ahorros')).toBeVisible();
@@ -84,11 +84,14 @@ test('transferir, seguir una meta y personalizar la comparación entre meses', a
       .getByLabel('Cuenta para ahorrar')
       .selectOption({ label: 'Ahorros' });
     await page.getByLabel('Nombre de la meta').fill('Vacaciones');
-    await page.getByLabel('Objetivo (ARS)').fill('20');
+    await page.getByLabel('Objetivo (en la moneda de la cuenta)').fill('20');
     await page.getByRole('button', { name: 'Crear meta' }).click();
     await expect(page.getByText(/Meta alcanzada/)).toBeVisible();
     await page.getByText('Editar meta').click();
-    await page.locator('article').getByLabel('Objetivo (ARS)').fill('21');
+    await page
+      .locator('article')
+      .getByLabel('Objetivo (en la moneda de la cuenta)')
+      .fill('21');
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page.getByText(/Faltan.*0,99/)).toBeVisible();
     await page.goto('/resumen?mes=2024-02');

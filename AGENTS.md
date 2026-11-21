@@ -65,6 +65,13 @@ Antes de añadir dependencias o usar API que puedan haber cambiado, consultar do
 - Metas de ahorro, comparativas entre meses y personalizaciones.
 - Opciones de despliegue y respaldo verificables.
 
+### Fase 4 — Tarjetas, dólares y análisis (autorizada por el usuario)
+
+- Tarjetas de crédito como tipo de cuenta y compras en cuotas atómicas e idempotentes.
+- Cuentas en USD, compra y venta de dólares con dos importes y cotización de referencia manual; los resúmenes en ARS no mezclan monedas.
+- Proyección de fin de mes, tendencia de seis meses, cambios por categoría y próximos vencimientos.
+- Edición de transferencias, colores e íconos de categoría, íconos de la PWA y bloqueo local con PIN.
+
 **No avanzar de fase sin autorización del usuario.**
 
 ## 4. Reglas del dominio financiero

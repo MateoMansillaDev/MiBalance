@@ -1,8 +1,8 @@
 const limit = 9223372036854775807n;
-const ars = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-});
+const formatters = {
+  ARS: new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }),
+  USD: new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'USD' }),
+};
 
 export function parseCents(raw: string, opening = false): bigint {
   const value = raw.trim();
@@ -34,10 +34,10 @@ export function decimal(cents: string | bigint) {
   );
 }
 
-export function money(cents: string | bigint) {
+export function money(cents: string | bigint, currency: 'ARS' | 'USD' = 'ARS') {
   const [whole, fraction] = decimal(cents).split(',');
   const integer = whole === '-0' ? -0 : BigInt(whole);
-  return ars
+  return formatters[currency]
     .formatToParts(integer)
     .map((part) => (part.type === 'fraction' ? fraction : part.value))
     .join('');
@@ -45,4 +45,23 @@ export function money(cents: string | bigint) {
 
 export function percent(value: bigint, max: bigint) {
   return max > 0n ? Number((value * 10000n) / max) / 100 : 0;
+}
+
+/** Reparte un total en cuotas exactas: el resto de centavos va a las primeras. */
+export function splitInstallments(total: bigint, count: number) {
+  if (!Number.isInteger(count) || count < 2 || count > 60)
+    throw new Error('Elegí entre 2 y 60 cuotas.');
+  const n = BigInt(count);
+  if (total < n) throw new Error('El importe no alcanza para esa cantidad de cuotas.');
+  const base = total / n;
+  const rest = total % n;
+  return Array.from({ length: count }, (_, i) => base + (BigInt(i) < rest ? 1n : 0n));
+}
+
+/** Convierte centavos de dólar a centavos de peso, redondeando al centavo más cercano. */
+export function usdToArs(usdCents: bigint, arsCentsPerUsd: bigint) {
+  const product = usdCents * arsCentsPerUsd;
+  const sign = product < 0n ? -1n : 1n;
+  const abs = product < 0n ? -product : product;
+  return sign * ((abs + 50n) / 100n);
 }

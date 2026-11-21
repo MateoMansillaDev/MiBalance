@@ -23,7 +23,7 @@ function GoalFields({ goal }: { goal?: Goal }) {
         <input name="name" required maxLength={80} defaultValue={goal?.name} />
       </label>
       <label>
-        Objetivo (ARS)
+        Objetivo (en la moneda de la cuenta)
         <input
           name="target_cents"
           inputMode="decimal"
@@ -74,7 +74,7 @@ export default async function Goals() {
             <article className={ui.panel} key={goal.id}>
               <h2>{goal.name}</h2>
               <p>
-                {account.name} · Saldo {money(balance)}
+                {account.name} · Saldo {money(balance, account.currency)}
               </p>
               <progress
                 aria-label={'Avance de ' + goal.name}
@@ -82,10 +82,10 @@ export default async function Goals() {
                 value={Math.max(0, Math.min(100, percent(balance, target)))}
               />
               <p>
-                Objetivo {money(target)} ·{' '}
+                Objetivo {money(target, account.currency)} ·{' '}
                 {balance >= target
                   ? 'Meta alcanzada'
-                  : 'Faltan ' + money(target - balance)}
+                  : 'Faltan ' + money(target - balance, account.currency)}
               </p>
               <details className={s.disclosure}>
                 <summary>Editar meta</summary>

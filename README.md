@@ -2,6 +2,17 @@
 
 Aplicación personal para registrar ingresos y gastos en pesos argentinos. La Fase 1 incluye registro e inicio de sesión por correo, resumen mensual, gráficos semanales y por categoría, cuentas con saldo inicial, categorías editables e historial con filtros y paginación.
 
+## Fase 4 · Tarjetas, dólares y análisis
+
+En una instalación local existente, aplicá la migración nueva con `npx supabase migration up` antes de abrir esta versión.
+
+- **Tarjetas y cuotas.** Creá una cuenta del tipo **Tarjeta de crédito**. Al cargar un gasto con esa tarjeta podés elegir la cantidad de cuotas: cada cuota se registra como gasto en su mes, desde la fecha de la compra, y los centavos sobrantes van a las primeras. Todas las cuotas se guardan juntas o ninguna, y un reintento no las duplica. En **Cuentas → Tarjetas** ves la deuda total y las cuotas de los próximos seis meses. Para pagar el resumen, registrá una transferencia del banco a la tarjeta. Desde una cuota podés editar solo esa cuota o eliminar la compra completa.
+- **Dólares.** Cada cuenta tiene moneda: pesos (ARS) o dólares (USD). Una cuenta con historial no puede cambiar de moneda. Las transferencias solo mueven dinero entre cuentas de la misma moneda; para pasar de pesos a dólares usá **Cuentas → Compra y venta de dólares**, que registra los dos importes y no cuenta como ingreso ni gasto. Los resúmenes, presupuestos, reportes, la tendencia y el CSV siguen en pesos y no suman movimientos de cuentas en dólares.
+- **Cotización de referencia.** En **Cuentas** cargás cuántos pesos vale un dólar. El Resumen la usa solo para estimar en pesos tus cuentas en dólares y muestra la fecha de esa cotización. No se consulta ningún servicio externo.
+- **Resumen ampliado.** El panel de saldos separa los pesos disponibles, los dólares estimados y la deuda de tarjetas. **Proyección de fin de mes** (solo en el mes actual) suma al neto registrado los ingresos y gastos recurrentes en pesos que faltan hasta el cierre, con la misma regla que los genera. **Próximos 7 días** lista repeticiones pendientes y movimientos con fecha futura, como cuotas. **Tendencia** muestra ingresos y gastos de los últimos seis meses y **Qué cambió** compara el gasto por categoría con el mes anterior.
+- **Detalles.** Las transferencias se pueden editar. Cada categoría puede tener un color y un ícono, que aparecen en listas y gráficos. Los íconos de la app instalada son violetas.
+- **Bloqueo con PIN.** En **Configuración** podés activar un PIN de 4 a 8 números para este dispositivo. Se pide al abrir MiBalance y después de 5 minutos en segundo plano. El navegador guarda solo una derivación PBKDF2 del PIN, nunca el PIN. Es una pantalla de privacidad local: no reemplaza tu contraseña. Si lo olvidás, cerrá sesión desde la pantalla de bloqueo; eso lo quita.
+
 ## Fase 3 · Transferencias, metas y comparación
 
 - En **Cuentas → Transferencias** elegí el origen, el destino, la fecha y el importe. El débito y el crédito provienen de una sola fila de PostgreSQL. Un reintento conserva el identificador de la operación. El historial permite eliminar una transferencia con confirmación y revierte ambos efectos juntos. Se admiten saldos negativos, igual que al registrar gastos.
@@ -54,7 +65,7 @@ Si faltan las variables, la pantalla de acceso explica qué configurar. Las oper
 
 ## Cómo se calculan los saldos
 
-- **Saldo neto del mes** = ingresos del mes menos gastos del mes. **Saldo disponible de una cuenta** = saldo inicial + ingresos − gastos + transferencias recibidas − transferencias enviadas. La cuenta admite un saldo inicial negativo.
+- **Saldo neto del mes** = ingresos del mes menos gastos del mes. **Saldo disponible de una cuenta** = saldo inicial + ingresos − gastos + transferencias recibidas − transferencias enviadas + importes recibidos − importes entregados en compras y ventas de dólares, siempre en la moneda de la cuenta. La cuenta admite un saldo inicial negativo.
 - Los movimientos guardan importes positivos en centavos `BIGINT`. La API intercambia los importes como texto y la aplicación suma con `bigint`. PostgreSQL usa una suma de precisión ampliada para que el total pueda superar el límite de una fila individual.
 - `1.234,56`, `1234,56` y `1234.56` representan 123456 centavos. `1.234` representa mil doscientos treinta y cuatro pesos. Se rechazan movimientos de cero, negativos, decimales excedentes y notación exponencial.
 - Las fechas son de calendario (`DATE`). El día actual se calcula en `America/Argentina/Cordoba`. Desde y hasta son inclusivos. El resumen y su enlace al historial usan el mismo mes. Las semanas del gráfico agrupan los días 1–7, 8–14, 15–21, 22–28 y los restantes.

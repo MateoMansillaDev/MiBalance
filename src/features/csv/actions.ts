@@ -38,7 +38,12 @@ export async function processCsv(
     const text = new TextDecoder('utf-8', { fatal: true }).decode(
       await file.arrayBuffer(),
     );
-    entries = decodeCsv(text, list, tags);
+    // Solo cuentas en pesos: una cuenta en dólares no figura y su fila se rechaza.
+    entries = decodeCsv(
+      text,
+      list.filter((a) => a.currency === 'ARS'),
+      tags,
+    );
   } catch (error) {
     return {
       error:

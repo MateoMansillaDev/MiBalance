@@ -9,12 +9,43 @@ import {
 } from 'lucide-react';
 import { Heading } from '@/components/Heading';
 import { MovementList } from '@/features/ledger/MovementList';
-import { accounts, history, summary } from '@/features/ledger/queries';
+import {
+  accounts,
+  categories,
+  exchangeRate,
+  history,
+  monthlyTotals,
+  summary,
+} from '@/features/ledger/queries';
+import { recurringRules } from '@/features/insights/queries';
+import {
+  Changes,
+  Projection,
+  Trend,
+  Upcoming,
+  insightStyles,
+} from '@/features/insights/Insights';
+import {
+  categoryChanges,
+  occurrences,
+  pendingRecurring,
+  type Occurrence,
+} from '@/lib/insights';
+import { categoryColor } from '@/lib/categoryIcons';
 import { AccountBalances } from '@/features/ledger/AccountBalances';
 import { HIDE_BALANCES_COOKIE } from '@/lib/preferences';
 import { historyFilters } from '@/features/ledger/filters';
-import { today, period, monthLabel, validDate } from '@/lib/dates';
-import { money, percent } from '@/lib/money';
+import {
+  addDays,
+  addMonths,
+  dateLabel,
+  today,
+  period,
+  monthLabel,
+  previousMonth,
+  validDate,
+} from '@/lib/dates';
+import { money, percent, usdToArs } from '@/lib/money';
 import { summarize } from '@/lib/summary';
 import { budgets, budgetStatus } from '@/features/planning/queries';
 import ui from '@/components/ui.module.scss';
@@ -42,20 +73,92 @@ export default async function Dashboard({
       </>
     );
   const { start, end } = period(month);
-  const [groups, recent, limits, wallets] = await Promise.all([
-    summary(start, end),
-    history(historyFilters({ desde: start, hasta: end }), 5),
-    budgets(month),
-    accounts(),
-  ]);
-  const totalBalance = wallets.reduce(
-    (sum, a) => sum + BigInt(a.balance_cents),
-    0n,
+  const now = today();
+  const isCurrent = month === now.slice(0, 7);
+  const soon = addDays(now, 7);
+  const prior = previousMonth(month);
+  const trendStart = addMonths(start, -5);
+  const [groups, recent, limits, wallets, tags, rate, trend, before, future] =
+    await Promise.all([
+      summary(start, end),
+      history(historyFilters({ desde: start, hasta: end }), 5),
+      budgets(month),
+      accounts(),
+      categories(),
+      exchangeRate(),
+      monthlyTotals(trendStart, end),
+      prior ? summary(period(prior).start, period(prior).end) : [],
+      history(historyFilters({ desde: addDays(now, 1), hasta: soon }), 20),
+    ]);
+  const rules = await recurringRules(wallets, tags);
+
+  // Saldos: pesos disponibles, dólares estimados con la cotización y deuda de tarjetas.
+  const sum = (list: typeof wallets) =>
+    list.reduce((total, a) => total + BigInt(a.balance_cents), 0n);
+  const pesoAccounts = wallets.filter(
+    (a) => a.currency === 'ARS' && a.kind !== 'credit',
   );
+  const dollarAccounts = wallets.filter(
+    (a) => a.currency === 'USD' && a.kind !== 'credit',
+  );
+  const cardAccounts = wallets.filter((a) => a.kind === 'credit');
+  const dollars = sum(dollarAccounts);
+  const rateCents = rate ? BigInt(rate.ars_cents_per_usd) : null;
+  const totalBalance =
+    sum(pesoAccounts) + (rateCents ? usdToArs(dollars, rateCents) : 0n);
+  const balanceDetails = dollarAccounts.length
+    ? [
+        rate && rateCents
+          ? 'Incluye ' +
+            money(dollars, 'USD') +
+            ' estimados a ' +
+            money(rateCents) +
+            ' por US$ 1 (cotización del ' +
+            dateLabel(rate.updated_on) +
+            ').'
+          : 'Además tenés ' +
+            money(dollars, 'USD') +
+            '. Cargá una cotización en Cuentas para sumarlos.',
+      ]
+    : [];
+
+  // Próximos 7 días: repeticiones que todavía no se registraron y movimientos con fecha futura.
+  const upcoming: Occurrence[] = [
+    ...rules.flatMap((rule) => occurrences(rule, soon)),
+    ...future.rows.map((row) => ({
+      date: row.occurred_on,
+      type: row.type,
+      amount_cents: BigInt(row.amount_cents),
+      currency: row.currency,
+      label:
+        (row.description || row.category_name) +
+        (row.installment_count
+          ? ' (cuota ' + row.installment_number + '/' + row.installment_count + ')'
+          : ''),
+    })),
+  ]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 8);
+  const pending = pendingRecurring(rules, end);
   const alerts = limits.filter(
     (b) => BigInt(b.spent_cents) * 5n >= BigInt(b.limit_cents) * 4n,
   );
   const data = summarize(groups);
+  const previousData = summarize(before);
+  const changes = categoryChanges(
+    data.categories.map(([n, v]) => [n, v]),
+    previousData.categories.map(([n, v]) => [n, v]),
+  );
+  const totalsByMonth = new Map(trend.map((m) => [m.month, m]));
+  const trendMonths = Array.from({ length: 6 }, (_, i) => {
+    const key = addMonths(trendStart, i).slice(0, 7);
+    const found = totalsByMonth.get(key);
+    return {
+      month: key,
+      income: BigInt(found?.income ?? 0),
+      expense: BigInt(found?.expense ?? 0),
+    };
+  });
   const weeks = data.weeks.slice(0, Math.ceil(Number(end.slice(-2)) / 7));
   const max = weeks.reduce(
     (largest, w) =>
@@ -97,11 +200,20 @@ export default async function Dashboard({
       )}
       <AccountBalances
         total={money(totalBalance)}
-        rows={wallets.map((a) => ({
+        details={balanceDetails}
+        rows={[...pesoAccounts, ...dollarAccounts].map((a) => ({
           id: a.id,
           name: a.name,
-          amount: money(a.balance_cents),
+          amount: money(a.balance_cents, a.currency),
         }))}
+        cards={cardAccounts.map((a) => {
+          const balance = BigInt(a.balance_cents);
+          return {
+            id: a.id,
+            name: a.name,
+            amount: money(balance < 0n ? -balance : 0n, a.currency),
+          };
+        })}
         initiallyHidden={hideBalances}
       />
       <div className={s.metrics}>
@@ -133,6 +245,16 @@ export default async function Dashboard({
             <strong>{money(value)}</strong>
           </section>
         ))}
+      </div>
+      <div className={insightStyles.pair}>
+        {isCurrent && (
+          <Projection
+            net={data.net}
+            pendingIncome={pending.income}
+            pendingExpense={pending.expense}
+          />
+        )}
+        <Upcoming items={upcoming} />
       </div>
       <div className={s.charts}>
         <section className={ui.panel}>
@@ -178,16 +300,24 @@ export default async function Dashboard({
           <p>Distribución del mes</p>
           {data.categories.length ? (
             <ul className={s.categories}>
-              {data.categories.map(([name, value]) => (
+              {data.categories.map(([name, value, color]) => (
                 <li key={name}>
                   <div>
-                    <strong>{name}</strong>
+                    <strong>
+                      <i
+                        className={ui.swatch}
+                        style={{ background: categoryColor(name, color) }}
+                        aria-hidden="true"
+                      />
+                      {name}
+                    </strong>
                     <span>{money(value)}</span>
                   </div>
                   <progress
                     aria-label={'Participación de ' + name}
                     max={100}
                     value={percent(value, data.expense)}
+                    style={{ accentColor: categoryColor(name, color) }}
                   />
                 </li>
               ))}
@@ -196,6 +326,10 @@ export default async function Dashboard({
             <div className={ui.empty}>Todavía no hay gastos en este mes.</div>
           )}
         </section>
+      </div>
+      <div className={insightStyles.pair}>
+        <Trend months={trendMonths} />
+        {prior && <Changes changes={changes} reference={prior} />}
       </div>
       <section className={ui.panel}>
         <div className={ui.between}>

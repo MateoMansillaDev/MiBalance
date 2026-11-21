@@ -37,3 +37,28 @@ export function monthLabel(month: string) {
 export function dateLabel(date: string) {
   return date.split('-').reverse().join('/');
 }
+
+function utc(date: string) {
+  return new Date(date + 'T12:00:00Z');
+}
+function iso(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+export function addDays(date: string, days: number) {
+  const d = utc(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return iso(d);
+}
+/** Suma meses conservando el día; en meses cortos usa el último día. */
+export function addMonths(date: string, months: number, day = Number(date.slice(8))) {
+  const d = utc(date.slice(0, 8) + '01');
+  d.setUTCMonth(d.getUTCMonth() + months);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
+  return iso(d);
+}
+export function shortMonthLabel(month: string) {
+  return new Intl.DateTimeFormat('es-AR', { month: 'short', timeZone: 'UTC' })
+    .format(utc(month + '-01'))
+    .replace('.', '');
+}

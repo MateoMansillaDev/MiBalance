@@ -1,13 +1,29 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Banknote, Landmark, Wallet, Tag, Plus, Pencil } from 'lucide-react';
+import {
+  Banknote,
+  CreditCard,
+  Landmark,
+  Wallet,
+  Plus,
+  Pencil,
+} from 'lucide-react';
 import { Heading } from '@/components/Heading';
-import { accounts, categories } from './queries';
+import { MutationForm } from '@/components/MutationForm';
+import { accounts, categories, exchangeRate } from './queries';
 import { CatalogEditor } from './Editor';
-import { directions, kinds } from '@/lib/domain';
-import { money } from '@/lib/money';
+import { saveRate } from '@/features/accounts/advanced-actions';
+import { currencies, directions, kinds } from '@/lib/domain';
+import { categoryColor, iconSet } from '@/lib/categoryIcons';
+import { dateLabel } from '@/lib/dates';
+import { decimal, money } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
-const icons = { cash: Banknote, bank: Landmark, wallet: Wallet };
+const icons = {
+  cash: Banknote,
+  bank: Landmark,
+  wallet: Wallet,
+  credit: CreditCard,
+};
 export async function Catalog({
   finance,
   edit,
@@ -17,7 +33,10 @@ export async function Catalog({
   edit?: string;
   create: boolean;
 }) {
-  const rows = finance ? await accounts() : await categories();
+  const [rows, rate] = await Promise.all([
+    finance ? accounts() : categories(),
+    finance ? exchangeRate() : null,
+  ]);
   const selected = edit ? rows.find((row) => row.id === edit) : undefined;
   if (edit && !selected) notFound();
   const base = finance ? '/cuentas' : '/categorias';
@@ -33,9 +52,17 @@ export async function Catalog({
         }
       >
         {finance && (
-          <Link href="/cuentas/transferencias" className={ui.secondary}>
-            Transferencias
-          </Link>
+          <>
+            <Link href="/cuentas/transferencias" className={ui.secondary}>
+              Transferencias
+            </Link>
+            <Link href="/cuentas/tarjetas" className={ui.secondary}>
+              Tarjetas
+            </Link>
+            <Link href="/cuentas/dolares" className={ui.secondary}>
+              Compra y venta de dólares
+            </Link>
+          </>
         )}
         <Link className={ui.secondary} href={base + '?nueva=1'}>
           <Plus size={16} /> Nueva {noun}
@@ -48,14 +75,48 @@ export async function Catalog({
           item={selected}
         />
       )}
-      <div className={ui.catalog}>
+      {finance && (
+        <section className={[ui.panel, ui.sectionGap].join(' ')}>
+          <h2>Cotización de referencia del dólar</h2>
+          <p>
+            {rate
+              ? 'Actualizada el ' +
+                dateLabel(rate.updated_on) +
+                ': ' +
+                money(rate.ars_cents_per_usd) +
+                ' por US$ 1. Se usa solo para estimar en pesos tus cuentas en dólares.'
+              : 'Cargá cuántos pesos vale un dólar para estimar en pesos tus cuentas en dólares.'}
+          </p>
+          <MutationForm action={saveRate} submit="Guardar cotización">
+            <label>
+              Pesos por US$ 1
+              <input
+                name="ars_cents_per_usd"
+                inputMode="decimal"
+                required
+                defaultValue={rate ? decimal(rate.ars_cents_per_usd) : ''}
+              />
+            </label>
+          </MutationForm>
+        </section>
+      )}
+      <div className={[ui.catalog, ui.sectionGap].join(' ')}>
         {rows.map((row) => {
           const account = 'kind' in row ? row : undefined;
-          const Icon = account ? icons[account.kind] : Tag;
+          const category = 'type' in row ? row : undefined;
+          const Icon = account
+            ? icons[account.kind]
+            : iconSet[category?.icon ?? 'tag'].icon;
+          const tint = category
+            ? categoryColor(category.name, category.color)
+            : undefined;
           return (
             <article key={row.id} className={ui.panel}>
               <div className={ui.between}>
-                <span className={ui.tile}>
+                <span
+                  className={ui.tile}
+                  style={tint ? { background: tint, color: '#fff' } : undefined}
+                >
                   <Icon size={21} />
                 </span>
                 <Link
@@ -67,10 +128,18 @@ export async function Catalog({
                 </Link>
               </div>
               <h2>{row.name}</h2>
-              <p>{'type' in row ? directions[row.type] : kinds[row.kind]}</p>
+              <p>
+                {category
+                  ? directions[category.type]
+                  : account &&
+                    kinds[account.kind] +
+                      (account.currency === 'USD'
+                        ? ' · ' + currencies.USD
+                        : '')}
+              </p>
               {account && (
                 <strong className={ui.figure}>
-                  {money(account.balance_cents)}
+                  {money(account.balance_cents, account.currency)}
                 </strong>
               )}
             </article>

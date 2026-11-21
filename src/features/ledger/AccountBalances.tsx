@@ -23,11 +23,15 @@ function Amount({ value, hidden }: { value: string; hidden: boolean }) {
 
 export function AccountBalances({
   total,
+  details,
   rows,
+  cards,
   initiallyHidden,
 }: {
   total: string;
+  details: string[];
   rows: Row[];
+  cards: Row[];
   initiallyHidden: boolean;
 }) {
   const [hidden, setHidden] = useState(initiallyHidden);
@@ -58,10 +62,16 @@ export function AccountBalances({
           {hidden ? 'Mostrar importes' : 'Ocultar importes'}
         </button>
       </div>
-      <p>Saldo disponible hoy, sumando todas tus cuentas.</p>
+      <p>Saldo disponible hoy, sumando tus cuentas en pesos.</p>
       <strong className={s.total}>
         <Amount value={total} hidden={hidden} />
       </strong>
+      {!hidden &&
+        details.map((line) => (
+          <p key={line} className={s.detail}>
+            {line}
+          </p>
+        ))}
       {rows.length ? (
         <ul className={s.list}>
           {rows.map((row) => (
@@ -75,6 +85,19 @@ export function AccountBalances({
         <p className={ui.empty}>
           <Link href="/cuentas?nueva=1">Creá tu primera cuenta</Link>
         </p>
+      )}
+      {cards.length > 0 && (
+        <>
+          <h3 className={s.subtitle}>Deuda en tarjetas</h3>
+          <ul className={s.list}>
+            {cards.map((row) => (
+              <li key={row.id}>
+                <span>{row.name}</span>
+                <Amount value={row.amount} hidden={hidden} />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );
