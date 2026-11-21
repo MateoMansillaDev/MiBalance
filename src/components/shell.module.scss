@@ -18,8 +18,9 @@
   display: flex;
   flex-direction: column;
   gap: 3rem;
-  background: #153b30;
-  color: #f4f8ee;
+  background: var(--surface);
+  color: var(--ink);
+  border-right: 1px solid var(--border);
   padding: 2rem 1.2rem;
   min-height: 100vh;
 }
@@ -33,45 +34,62 @@
   align-items: center;
   gap: 0.8rem;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
   padding: 0.75rem 0.85rem;
-  color: #c7d9ce;
+  color: var(--muted);
   background: transparent;
   font-size: 0.94rem;
   font-weight: 550;
 }
 .sidebar a[aria-current] {
-  color: #e5ffbd;
-  background: #2d5444;
+  color: var(--on-brand);
+  background: var(--brand);
+  font-weight: 650;
 }
 .sidebar a:hover,
 .logout button:hover {
-  background: #2d5444;
+  background: var(--soft);
+  color: var(--ink);
+}
+.sidebar a[aria-current]:hover {
+  background: var(--brand);
+  color: var(--on-brand);
 }
 .logout {
   margin-top: auto;
-  border-top: 1px solid #3c5c4e;
+  border-top: 1px solid var(--border);
   padding-top: 1rem;
 }
 .workspace {
   min-width: 0;
+  /* Banda de color arriba y manchas difusas en el resto del fondo. */
+  background:
+    linear-gradient(var(--band) 0 var(--band-height), transparent var(--band-height)),
+    radial-gradient(640px 420px at 10% calc(var(--band-height) + 60px), var(--blob-a), transparent 70%),
+    radial-gradient(560px 380px at 90% calc(var(--band-height) + 140px), var(--blob-b), transparent 70%),
+    radial-gradient(520px 380px at 50% calc(var(--band-height) + 620px), var(--blob-c), transparent 70%),
+    var(--bg);
 }
 .top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.9rem clamp(1rem, 4vw, 3.5rem);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-bottom: 1px solid rgb(255 255 255 / 18%);
+  background: transparent;
   gap: 0.5rem;
 }
 .top div {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--muted);
+  color: var(--on-band-muted);
   font-size: 0.88rem;
+}
+.top a {
+  background: var(--surface);
+  color: var(--brand);
 }
 .content {
   max-width: 1480px;
@@ -83,6 +101,8 @@
     display: block;
   }
   .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
     min-height: auto;
     gap: 0.85rem;
     padding: 0.85rem 1rem 0;

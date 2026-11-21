@@ -1,36 +1,61 @@
 @mixin dark {
   color-scheme: dark;
-  --bg: #101b19;
-  --surface: #192723;
-  --ink: #edf4ee;
-  --muted: #adc0b6;
-  --border: #364a42;
-  --brand: #98dab2;
-  --on-brand: #102d22;
-  --soft: #263e33;
-  --field: #15231e;
-  --down-bg: #483127;
-  --down-ink: #ffbda7;
-  --up-ink: #a6e9be;
-  --warn: #402f23;
+  --bg: #120e22;
+  --surface: #1c1631;
+  --ink: #eeeafb;
+  --muted: #b3abcf;
+  --border: #342b52;
+  --brand: #b9a2ff;
+  --on-brand: #1e1638;
+  --soft: #2a2246;
+  --field: #171229;
+  --down-bg: #46271d;
+  --down-ink: #ffb394;
+  --up-ink: #7fe0b5;
+  --warn: #3a2e1e;
+  --bar-in: #b9a2ff;
+  --bar-out: #f5a473;
+  --net-bg: #6d3fe0;
+  --net-ink: #ffffff;
+  --net-muted: #e2d8ff;
+  --band: #2e1f66;
+  --on-band: #ffffff;
+  --on-band-muted: #d9ccff;
+  --blob-a: rgba(185, 162, 255, 0.14);
+  --blob-b: rgba(245, 164, 115, 0.1);
+  --blob-c: rgba(185, 162, 255, 0.06);
 }
 :root {
   color-scheme: light;
-  --bg: #f4f6f2;
+  --bg: #f5f3ff;
   --surface: #fff;
-  --ink: #192b24;
-  --muted: #56695f;
-  --border: #d9e1da;
-  --brand: #205e45;
+  --ink: #1e1638;
+  --muted: #5e5878;
+  --border: #e4e0f5;
+  --brand: #6d3fe0;
   --on-brand: #fff;
-  --soft: #e5f1e8;
+  --soft: #efebff;
   --field: #fff;
-  --down-bg: #f9eae2;
-  --down-ink: #96452f;
-  --up-ink: #205d45;
+  --down-bg: #fdede4;
+  --down-ink: #b13c0b;
+  --up-ink: #0f7a55;
   --warn: #fff4de;
-  --radius: 16px;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  --bar-in: #6d3fe0;
+  --bar-out: #f59e66;
+  --net-bg: #6d3fe0;
+  --net-ink: #fff;
+  --net-muted: #d9ccff;
+  --band: #6d3fe0;
+  --on-band: #fff;
+  --on-band-muted: #e2d8ff;
+  --blob-a: rgba(109, 63, 224, 0.16);
+  --blob-b: rgba(245, 158, 102, 0.22);
+  --blob-c: rgba(109, 63, 224, 0.07);
+  --band-height: 300px;
+  --radius: 22px;
+  --radius-sm: 12px;
+  --pill: 999px;
+  font-family: var(--font-sans), 'Segoe UI', system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -100,7 +125,7 @@ textarea {
   max-width: 100%;
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.65rem 0.8rem;
   background: var(--field);
 }
@@ -108,7 +133,7 @@ textarea {
   resize: vertical;
 }
 :focus-visible {
-  outline: 3px solid #599bff;
+  outline: 3px solid var(--brand);
   outline-offset: 3px;
 }
 svg {

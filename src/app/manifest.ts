@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     scope: '/',
     display: 'standalone',
-    background_color: '#102825',
-    theme_color: '#102825',
+    background_color: '#f5f3ff',
+    theme_color: '#6d3fe0',
     icons: [192, 512].map((size) => ({
       src: '/icons/mibalance-' + size + '.png',
       sizes: size + 'x' + size,

@@ -26,12 +26,12 @@
   font-variant-numeric: tabular-nums;
 }
 .metrics .net {
-  background: #1c4839;
-  color: #f4ffef;
-  border-color: #1c4839;
+  background: var(--net-bg);
+  color: var(--net-ink);
+  border-color: var(--net-bg);
 }
 .net svg {
-  color: #d6f8a6;
+  color: var(--net-muted);
 }
 .income svg {
   color: var(--up-ink);
@@ -57,11 +57,11 @@
   width: 0.6rem;
   height: 0.6rem;
   border-radius: 50%;
-  background: #4a9476;
+  background: var(--bar-in);
   margin-right: 0.4rem;
 }
 .legend span + span::before {
-  background: #dd996c;
+  background: var(--bar-out);
 }
 .plot {
   display: flex;
@@ -88,11 +88,11 @@
 }
 .plot i {
   width: 22%;
-  background: #4a9476;
-  border-radius: 3px 3px 0 0;
+  background: var(--bar-in);
+  border-radius: 4px 4px 0 0;
 }
 .plot i + i {
-  background: #dd996c;
+  background: var(--bar-out);
 }
 .charts details {
   font-size: 0.85rem;
@@ -109,7 +109,7 @@
 .categories progress {
   width: 100%;
   height: 0.52rem;
-  accent-color: #51866b;
+  accent-color: var(--brand);
 }
 .categories li > div {
   font-size: 0.88rem;

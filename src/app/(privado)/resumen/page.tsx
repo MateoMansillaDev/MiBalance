@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 import { Heading } from '@/components/Heading';
 import { MovementList } from '@/features/ledger/MovementList';
-import { history, summary } from '@/features/ledger/queries';
+import { accounts, history, summary } from '@/features/ledger/queries';
+import { AccountBalances } from '@/features/ledger/AccountBalances';
+import { HIDE_BALANCES_COOKIE } from '@/lib/preferences';
 import { historyFilters } from '@/features/ledger/filters';
 import { today, period, monthLabel, validDate } from '@/lib/dates';
 import { money, percent } from '@/lib/money';
@@ -25,7 +27,9 @@ export default async function Dashboard({
   searchParams: Promise<{ mes?: string; comparar?: string }>;
 }) {
   const { mes, comparar } = await searchParams;
-  const showComparison = (await cookies()).get('mb-compare')?.value !== 'hide';
+  const prefs = await cookies();
+  const showComparison = prefs.get('mb-compare')?.value !== 'hide';
+  const hideBalances = prefs.get(HIDE_BALANCES_COOKIE)?.value === '1';
   const month = mes || today().slice(0, 7);
   if (!validDate(month + '-01'))
     return (
@@ -38,11 +42,16 @@ export default async function Dashboard({
       </>
     );
   const { start, end } = period(month);
-  const [groups, recent, limits] = await Promise.all([
+  const [groups, recent, limits, wallets] = await Promise.all([
     summary(start, end),
     history(historyFilters({ desde: start, hasta: end }), 5),
     budgets(month),
+    accounts(),
   ]);
+  const totalBalance = wallets.reduce(
+    (sum, a) => sum + BigInt(a.balance_cents),
+    0n,
+  );
   const alerts = limits.filter(
     (b) => BigInt(b.spent_cents) * 5n >= BigInt(b.limit_cents) * 4n,
   );
@@ -86,6 +95,15 @@ export default async function Dashboard({
           <Link href={'/planificacion?mes=' + month}>Revisar presupuestos</Link>
         </section>
       )}
+      <AccountBalances
+        total={money(totalBalance)}
+        rows={wallets.map((a) => ({
+          id: a.id,
+          name: a.name,
+          amount: money(a.balance_cents),
+        }))}
+        initiallyHidden={hideBalances}
+      />
       <div className={s.metrics}>
         {[
           {

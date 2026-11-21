@@ -111,6 +111,19 @@ test('transferir, seguir una meta y personalizar la comparación entre meses', a
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    const balances = page.getByRole('region', {
+      name: 'Dinero en tus cuentas',
+    });
+    await expect(balances).toContainText('35,01');
+    await expect(balances).toContainText('20,01');
+    await balances.getByRole('button', { name: 'Ocultar importes' }).click();
+    await expect(balances).not.toContainText('35,01');
+    await expect(balances).not.toContainText('20,01');
+    await page.reload();
+    await expect(balances).toContainText('Importe oculto');
+    await expect(balances).not.toContainText('35,01');
+    await balances.getByRole('button', { name: 'Mostrar importes' }).click();
+    await expect(balances).toContainText('35,01');
     await page.goto('/configuracion');
     await page.getByLabel('Mostrar comparativa mensual en Resumen').uncheck();
     await page.getByRole('button', { name: 'Guardar preferencia' }).click();
