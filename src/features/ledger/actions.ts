@@ -8,6 +8,8 @@ import {
   transactionInput,
   uuid,
 } from '@/lib/domain';
+import { splitInstallments } from '@/lib/money';
+import { addMonths } from '@/lib/dates';
 export type Resource = 'accounts' | 'categories' | 'transactions';
 export type Result = { error?: string };
 const paths = {
@@ -50,7 +52,7 @@ export async function save(
     const [account, category] = await Promise.all([
       db
         .from('accounts')
-        .select('id')
+        .select('id,kind')
         .eq('user_id', user.id)
         .eq('id', tx.account_id)
         .maybeSingle(),
@@ -68,6 +70,43 @@ export async function save(
       return {
         error: 'Elegí una cuenta propia y una categoría del mismo tipo.',
       };
+    const count = Number(form.get('cuotas') || 1);
+    if (!Number.isInteger(count) || count < 1 || count > 60)
+      return { error: 'Elegí entre 2 y 60 cuotas.' };
+    if (!id && count > 1) {
+      if (account.data.kind !== 'credit' || tx.type !== 'expense')
+        return { error: 'Las cuotas son para gastos con tarjeta de crédito.' };
+      const group = uuid.safeParse(form.get('installment_group'));
+      if (!group.success) return { error: 'Volvé a cargar el formulario.' };
+      let parts: bigint[];
+      try {
+        parts = splitInstallments(BigInt(tx.amount_cents), count);
+      } catch (error) {
+        return { error: (error as Error).message };
+      }
+      // Una sola sentencia: se guardan todas las cuotas o ninguna.
+      const rows = parts.map((cents, i) => ({
+        ...tx,
+        user_id: user.id,
+        amount_cents: cents.toString(),
+        occurred_on: addMonths(tx.occurred_on, i),
+        installment_group: group.data,
+        installment_number: i + 1,
+        installment_count: count,
+      }));
+      const { error } = await db.from('transactions').insert(rows);
+      if (error?.code === '23505') {
+        // Reintento de la misma compra: ya quedó registrada.
+        const prior = await db
+          .from('transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('installment_group', group.data);
+        if (prior.count === count) refresh(resource);
+      }
+      if (error) return { error: databaseError(error.code) };
+      refresh(resource);
+    }
   }
   const table = db.from(resource);
   const operation = id

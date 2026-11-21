@@ -4,6 +4,7 @@ import { MutationForm } from '@/components/MutationForm';
 import { TransferForm } from '@/features/accounts/TransferForm';
 import { removeItem } from '@/features/accounts/advanced-actions';
 import { accounts } from '@/features/ledger/queries';
+import { uuid } from '@/lib/domain';
 import { requireUser } from '@/lib/supabase/server';
 import { dateLabel, today } from '@/lib/dates';
 import { money } from '@/lib/money';
@@ -14,9 +15,10 @@ export const metadata = { title: 'Transferencias' };
 export default async function Transfers({
   searchParams,
 }: {
-  searchParams: Promise<{ pagina?: string }>;
+  searchParams: Promise<{ pagina?: string; editar?: string }>;
 }) {
-  const page = Number((await searchParams).pagina ?? 1);
+  const params = await searchParams;
+  const page = Number(params.pagina ?? 1);
   if (!Number.isSafeInteger(page) || page < 1 || page > 10000000)
     return (
       <p role="alert">
@@ -41,6 +43,17 @@ export default async function Transfers({
   if (history.error)
     throw new Error('No se pudo consultar el historial de transferencias.');
   const names = new Map(list.map((a) => [a.id, a.name]));
+  const currencyOf = new Map(list.map((a) => [a.id, a.currency]));
+  let editing = null;
+  if (params.editar && uuid.safeParse(params.editar).success) {
+    const found = await db
+      .from('transfers')
+      .select('id,source_id,destination_id,amount_cents::text,occurred_on,description')
+      .eq('user_id', user.id)
+      .eq('id', params.editar)
+      .maybeSingle();
+    editing = found.data;
+  }
   return (
     <>
       <Heading
@@ -52,11 +65,22 @@ export default async function Transfers({
         </Link>
       </Heading>
       <section className={ui.panel}>
-        <h2>Nueva transferencia</h2>
+        <h2>{editing ? 'Editar transferencia' : 'Nueva transferencia'}</h2>
+        {editing && (
+          <p>
+            <Link href="/cuentas/transferencias">Cancelar la edición</Link>
+          </p>
+        )}
         {list.length >= 2 ? (
           <TransferForm
-            accounts={list.map(({ id, name }) => ({ id, name }))}
+            key={editing?.id ?? 'nueva'}
+            accounts={list.map(({ id, name, currency }) => ({
+              id,
+              name,
+              currency,
+            }))}
             date={today()}
+            editing={editing ?? undefined}
           />
         ) : (
           <p>
@@ -75,12 +99,23 @@ export default async function Transfers({
                   <strong>
                     {names.get(t.source_id)} → {names.get(t.destination_id)}
                   </strong>
-                  <span>{money(t.amount_cents)}</span>
+                  <span>
+                    {money(
+                      t.amount_cents,
+                      currencyOf.get(t.source_id) ?? 'ARS',
+                    )}
+                  </span>
                 </div>
                 <p>
                   {dateLabel(t.occurred_on)}
                   {t.description && ' · ' + t.description}
                 </p>
+                <Link
+                  href={'/cuentas/transferencias?editar=' + t.id}
+                  className={ui.textLink}
+                >
+                  Editar transferencia
+                </Link>
                 <MutationForm
                   action={removeItem.bind(null, 'transfers', t.id)}
                   submit="Eliminar transferencia"

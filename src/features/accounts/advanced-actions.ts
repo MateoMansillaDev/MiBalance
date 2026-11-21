@@ -1,5 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { today } from '@/lib/dates';
 import { z } from 'zod';
 import { requireUser } from '@/lib/supabase/server';
 import { transactionInput, uuid, accountInput } from '@/lib/domain';
@@ -23,21 +25,45 @@ function saved(message: string): Feedback {
   return { message };
 }
 
-export async function saveTransfer(form: FormData): Promise<Feedback> {
+export async function saveTransfer(
+  editing: string | null,
+  form: FormData,
+): Promise<Feedback> {
   const { db, user } = await requireUser();
   const parsed = transfer.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const row = parsed.data;
   const owned = await db
     .from('accounts')
-    .select('id')
+    .select('id,currency')
     .eq('user_id', user.id)
     .in('id', [row.source_id, row.destination_id]);
   if (owned.error || owned.data?.length !== 2)
     return { error: 'Revisá las cuentas de origen y destino.' };
+  if (owned.data[0].currency !== owned.data[1].currency)
+    return {
+      error:
+        'Las dos cuentas deben tener la misma moneda. Para pasar de pesos a dólares usá Compra y venta de dólares.',
+    };
+  const currency = owned.data[0].currency as string;
+  if (editing) {
+    if (!uuid.safeParse(editing).success) return { error: 'Registro inválido.' };
+    const { id: _ignored, ...changes } = row;
+    void _ignored;
+    const { data, error } = await db
+      .from('transfers')
+      .update({ ...changes, currency })
+      .eq('user_id', user.id)
+      .eq('id', editing)
+      .select('id')
+      .maybeSingle();
+    return error || !data
+      ? { error: 'No se pudo guardar la transferencia.' }
+      : saved('Transferencia actualizada.');
+  }
   const result = await db
     .from('transfers')
-    .insert({ ...row, user_id: user.id });
+    .insert({ ...row, currency, user_id: user.id });
   if (result.error?.code === '23505') {
     const prior = await db
       .from('transfers')
@@ -91,13 +117,18 @@ export async function saveGoal(
     : saved('Meta guardada.');
 }
 
+const removable = {
+  transfers: 'Transferencia eliminada.',
+  savings_goals: 'Meta eliminada.',
+  exchanges: 'Operación eliminada.',
+} as const;
 export async function removeItem(
-  table: 'transfers' | 'savings_goals',
+  table: keyof typeof removable,
   id: string,
 ): Promise<Feedback> {
   const { db, user } = await requireUser();
   if (
-    !['transfers', 'savings_goals'].includes(table) ||
+    !Object.hasOwn(removable, table) ||
     !uuid.safeParse(id).success
   )
     return { error: 'Registro inválido.' };
@@ -109,7 +140,74 @@ export async function removeItem(
     .select('id')
     .maybeSingle();
   if (error || !data) return { error: 'No se pudo eliminar el registro.' };
-  return saved(
-    table === 'transfers' ? 'Transferencia eliminada.' : 'Meta eliminada.',
-  );
+  return saved(removable[table]);
+}
+
+const rate = z.object({ ars_cents_per_usd: transactionInput.shape.amount_cents });
+export async function saveRate(form: FormData): Promise<Feedback> {
+  const { db, user } = await requireUser();
+  const parsed = rate.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { error } = await db.from('exchange_rates').upsert({
+    user_id: user.id,
+    ars_cents_per_usd: parsed.data.ars_cents_per_usd,
+    updated_on: today(),
+  });
+  return error
+    ? { error: 'No se pudo guardar la cotización.' }
+    : saved('Cotización guardada.');
+}
+
+const exchange = z
+  .object({
+    source_id: uuid,
+    destination_id: uuid,
+    source_cents: transactionInput.shape.amount_cents,
+    destination_cents: transactionInput.shape.amount_cents,
+    occurred_on: transactionInput.shape.occurred_on,
+    description: transactionInput.shape.description,
+  })
+  .refine((e) => e.source_id !== e.destination_id, 'Elegí dos cuentas diferentes.');
+export async function saveExchange(form: FormData): Promise<Feedback> {
+  const { db, user } = await requireUser();
+  const parsed = exchange.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const row = parsed.data;
+  const owned = await db
+    .from('accounts')
+    .select('id,currency')
+    .eq('user_id', user.id)
+    .in('id', [row.source_id, row.destination_id]);
+  if (owned.error || owned.data?.length !== 2)
+    return { error: 'Revisá las cuentas de origen y destino.' };
+  const currencyOf = new Map(owned.data.map((a) => [a.id, a.currency as string]));
+  const source_currency = currencyOf.get(row.source_id);
+  const destination_currency = currencyOf.get(row.destination_id);
+  if (source_currency === destination_currency)
+    return {
+      error: 'Elegí una cuenta en pesos y otra en dólares. Para la misma moneda usá Transferencias.',
+    };
+  const { error } = await db.from('exchanges').insert({
+    ...row,
+    source_currency,
+    destination_currency,
+    user_id: user.id,
+  });
+  return error
+    ? { error: 'No se pudo registrar la operación.' }
+    : saved('Operación registrada.');
+}
+
+export async function removeInstallments(group: string): Promise<Feedback> {
+  const { db, user } = await requireUser();
+  if (!uuid.safeParse(group).success) return { error: 'Compra inválida.' };
+  const { data, error } = await db
+    .from('transactions')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('installment_group', group)
+    .select('id');
+  if (error || !data?.length) return { error: 'No se pudieron eliminar las cuotas.' };
+  revalidatePath('/', 'layout');
+  redirect('/movimientos');
 }

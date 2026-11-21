@@ -8,6 +8,7 @@ import {
 import { dateLabel } from '@/lib/dates';
 import { money } from '@/lib/money';
 import { directions, type Movement } from '@/lib/domain';
+import { categoryColor } from '@/lib/categoryIcons';
 import ui from '@/components/ui.module.scss';
 export function MovementList({
   rows,
@@ -38,13 +39,28 @@ export function MovementList({
             <span className={ui.details}>
               <strong>{row.description || row.category_name}</strong>
               <small>
+                <i
+                  className={ui.swatch}
+                  style={{
+                    background: categoryColor(
+                      row.category_name,
+                      row.category_color,
+                    ),
+                  }}
+                  aria-hidden="true"
+                />
                 {row.account_name} · {row.category_name}
+                {row.installment_count &&
+                  ' · Cuota ' +
+                    row.installment_number +
+                    '/' +
+                    row.installment_count}
               </small>
             </span>
             <span className={ui.value}>
               <strong>
                 {row.type === 'expense' ? '−' : '+'}
-                {money(row.amount_cents)}
+                {money(row.amount_cents, row.currency)}
               </strong>
               <small>
                 {directions[row.type]} · {dateLabel(row.occurred_on)}

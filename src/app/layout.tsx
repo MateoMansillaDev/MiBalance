@@ -1,7 +1,14 @@
 import type { Metadata } from 'next';
 import { RegisterWorker } from '@/components/RegisterWorker';
 import { cookies } from 'next/headers';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import '@/styles/globals.scss';
+
+const sans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+});
 export const metadata: Metadata = {
   title: { default: 'MiBalance', template: '%s · MiBalance' },
   description: 'Tus cuentas, ingresos y gastos personales en pesos argentinos.',
@@ -20,6 +27,7 @@ export default async function RootLayout({
   return (
     <html
       lang="es-AR"
+      className={sans.variable}
       data-theme={theme === 'dark' || theme === 'light' ? theme : undefined}
     >
       <body>

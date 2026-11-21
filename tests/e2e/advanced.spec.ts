@@ -65,7 +65,7 @@ test('transferir, seguir una meta y personalizar la comparación entre meses', a
     await page
       .getByLabel('Cuenta de destino')
       .selectOption({ label: 'Ahorros' });
-    await page.getByLabel('Importe (ARS)').fill('20,01');
+    await page.getByLabel('Importe', { exact: true }).fill('20,01');
     await page.getByLabel('Fecha', { exact: true }).fill('2024-02-29');
     await page.getByRole('button', { name: 'Registrar transferencia' }).click();
     await expect(page.getByText('Efectivo → Ahorros')).toBeVisible();
@@ -84,11 +84,14 @@ test('transferir, seguir una meta y personalizar la comparación entre meses', a
       .getByLabel('Cuenta para ahorrar')
       .selectOption({ label: 'Ahorros' });
     await page.getByLabel('Nombre de la meta').fill('Vacaciones');
-    await page.getByLabel('Objetivo (ARS)').fill('20');
+    await page.getByLabel('Objetivo (en la moneda de la cuenta)').fill('20');
     await page.getByRole('button', { name: 'Crear meta' }).click();
     await expect(page.getByText(/Meta alcanzada/)).toBeVisible();
     await page.getByText('Editar meta').click();
-    await page.locator('article').getByLabel('Objetivo (ARS)').fill('21');
+    await page
+      .locator('article')
+      .getByLabel('Objetivo (en la moneda de la cuenta)')
+      .fill('21');
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page.getByText(/Faltan.*0,99/)).toBeVisible();
     await page.goto('/resumen?mes=2024-02');
@@ -111,6 +114,19 @@ test('transferir, seguir una meta y personalizar la comparación entre meses', a
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    const balances = page.getByRole('region', {
+      name: 'Dinero en tus cuentas',
+    });
+    await expect(balances).toContainText('35,01');
+    await expect(balances).toContainText('20,01');
+    await balances.getByRole('button', { name: 'Ocultar importes' }).click();
+    await expect(balances).not.toContainText('35,01');
+    await expect(balances).not.toContainText('20,01');
+    await page.reload();
+    await expect(balances).toContainText('Importe oculto');
+    await expect(balances).not.toContainText('35,01');
+    await balances.getByRole('button', { name: 'Mostrar importes' }).click();
+    await expect(balances).toContainText('35,01');
     await page.goto('/configuracion');
     await page.getByLabel('Mostrar comparativa mensual en Resumen').uncheck();
     await page.getByRole('button', { name: 'Guardar preferencia' }).click();

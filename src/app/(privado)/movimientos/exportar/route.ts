@@ -12,7 +12,8 @@ export async function GET(request: Request) {
       status: 400,
     });
   const { rows } = await history(filters, CSV_ROWS);
-  return new Response(encodeCsv(rows), {
+  // El CSV intercambia importes en pesos; las cuentas en dólares quedan afuera.
+  return new Response(encodeCsv(rows.filter((r) => r.currency === 'ARS')), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition':

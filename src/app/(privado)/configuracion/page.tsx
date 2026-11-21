@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/supabase/server';
 import { signOut } from '@/features/auth/actions';
 import { Heading } from '@/components/Heading';
+import { PinSettings } from '@/components/PinSettings';
 import ui from '@/components/ui.module.scss';
 export const metadata = { title: 'Configuración' };
 async function setTheme(form: FormData) {
@@ -60,6 +61,10 @@ export default async function Settings() {
             </label>
             <button className={ui.secondary}>Guardar preferencia</button>
           </form>
+        </section>
+        <section className={ui.panel}>
+          <h2>Bloqueo con PIN</h2>
+          <PinSettings />
         </section>
         <section className={ui.panel}>
           <h2>Tu sesión</h2>

@@ -61,6 +61,6 @@ it('reconcilia semanas, categorías y neto con enteros', () => {
     { week: 3, type: 'expense', category_name: 'Hogar', cents: '1' },
   ]);
   expect(s.net).toBe(9007199254740893n);
-  expect(s.categories).toEqual([['Hogar', 100n]]);
+  expect(s.categories).toEqual([['Hogar', 100n, null]]);
   expect(s.weeks.reduce((a, w) => a + w.expense, 0n)).toBe(s.expense);
 });

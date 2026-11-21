@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/supabase/server';
 import {
+  categoryIcons,
+  currency,
   direction,
   type Account,
   type Category,
@@ -26,7 +28,7 @@ export async function accounts() {
   return allRows<Account>((offset) =>
     db
       .from('account_balances')
-      .select('id,name,kind,opening_balance_cents,balance_cents')
+      .select('id,name,kind,opening_balance_cents,balance_cents,currency')
       .eq('user_id', user.id)
       .order('name')
       .order('id')
@@ -39,7 +41,7 @@ export async function categories() {
   return allRows<Category>((offset) =>
     db
       .from('categories')
-      .select('id,name,type')
+      .select('id,name,type,color,icon')
       .eq('user_id', user.id)
       .order('name')
       .order('id')
@@ -48,7 +50,24 @@ export async function categories() {
   );
 }
 const fields =
-  'id,account_id,category_id,account_name,category_name,type,amount_cents,occurred_on,description';
+  'id,account_id,category_id,account_name,category_name,type,amount_cents,occurred_on,description,currency,installment_group,installment_number,installment_count,category_color,category_icon';
+export const movementRow = z.object({
+  id: z.uuid(),
+  account_id: z.uuid(),
+  category_id: z.uuid(),
+  type: direction,
+  account_name: z.string(),
+  category_name: z.string(),
+  amount_cents: z.string().regex(/^\d+$/),
+  occurred_on: z.string(),
+  description: z.string(),
+  currency,
+  installment_group: z.uuid().nullable(),
+  installment_number: z.int().nullable(),
+  installment_count: z.int().nullable(),
+  category_color: z.string().nullable(),
+  category_icon: z.enum(categoryIcons).nullable(),
+});
 export async function movement(id: string) {
   const { db, user } = await requireUser();
   const result = await db
@@ -75,21 +94,7 @@ export async function history(filters: Filters, size = 20) {
     .order('id', { ascending: filters.ascending })
     .range(offset, offset + size - 1);
   if (error) throw new Error('No se pudo consultar el historial.');
-  const rows = z
-    .array(
-      z.object({
-        id: z.uuid(),
-        account_id: z.uuid(),
-        category_id: z.uuid(),
-        type: direction,
-        account_name: z.string(),
-        category_name: z.string(),
-        amount_cents: z.string().regex(/^\d+$/),
-        occurred_on: z.string(),
-        description: z.string(),
-      }),
-    )
-    .parse(data);
+  const rows = z.array(movementRow).parse(data);
   return { rows, count: count ?? 0 };
 }
 export async function summary(start: string, end: string) {
@@ -105,8 +110,38 @@ export async function summary(start: string, end: string) {
         week: z.int().min(1).max(5),
         type: direction,
         category_name: z.string(),
+        color: z.string().nullable(),
+        icon: z.string().nullable(),
         cents: z.string().regex(/^\d+$/),
       }),
     )
     .parse(data);
+}
+
+export async function monthlyTotals(start: string, end: string) {
+  const { db } = await requireUser();
+  const { data, error } = await db.rpc('monthly_totals', {
+    start_date: start,
+    end_date: end,
+  });
+  if (error || !data) throw new Error('No se pudo consultar la tendencia.');
+  return z
+    .array(
+      z.object({
+        month: z.string().regex(/^\d{4}-\d\d$/),
+        income: z.string().regex(/^\d+$/),
+        expense: z.string().regex(/^\d+$/),
+      }),
+    )
+    .parse(data);
+}
+export async function exchangeRate() {
+  const { db, user } = await requireUser();
+  const { data, error } = await db
+    .from('exchange_rates')
+    .select('ars_cents_per_usd::text,updated_on')
+    .eq('user_id', user.id)
+    .maybeSingle<{ ars_cents_per_usd: string; updated_on: string }>();
+  if (error) throw new Error('No se pudo consultar la cotización.');
+  return data;
 }

@@ -7,6 +7,8 @@ const c: Category = {
   id: '00000000-0000-4000-8000-000000000002',
   name: '=Categoría',
   type: 'expense',
+  color: null,
+  icon: null,
 };
 const row: Movement = {
   id: '00000000-0000-4000-8000-000000000003',
@@ -18,6 +20,12 @@ const row: Movement = {
   amount_cents: '9223372036854775807',
   occurred_on: '2024-02-29',
   description: '@Texto;"cita"\nsegunda línea',
+  currency: 'ARS',
+  installment_group: null,
+  installment_number: null,
+  installment_count: null,
+  category_color: null,
+  category_icon: null,
 };
 describe('CSV de movimientos', () => {
   it('conserva identidad y centavos exactos, escapando celdas de texto y comillas', () => {
