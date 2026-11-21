@@ -1,9 +1,15 @@
 import type { Metadata } from 'next';
+import { RegisterWorker } from '@/components/RegisterWorker';
 import { cookies } from 'next/headers';
 import '@/styles/globals.scss';
 export const metadata: Metadata = {
   title: { default: 'MiBalance', template: '%s · MiBalance' },
   description: 'Tus cuentas, ingresos y gastos personales en pesos argentinos.',
+  icons: {
+    apple: '/icons/mibalance-192.png',
+    icon: '/icons/mibalance-192.png',
+  },
+  appleWebApp: { capable: true, title: 'MiBalance' },
 };
 export default async function RootLayout({
   children,
@@ -16,7 +22,10 @@ export default async function RootLayout({
       lang="es-AR"
       data-theme={theme === 'dark' || theme === 'light' ? theme : undefined}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <RegisterWorker />
+      </body>
     </html>
   );
 }

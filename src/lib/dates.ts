@@ -20,6 +20,13 @@ export function period(month: string) {
   const last = new Date(Date.UTC(year, number, 0)).getUTCDate();
   return { start: month + '-01', end: month + '-' + last };
 }
+export function previousMonth(month: string) {
+  const { start } = period(month);
+  if (start === '1000-01-01') return null;
+  const date = new Date(start + 'T12:00:00Z');
+  date.setUTCDate(0);
+  return date.toISOString().slice(0, 7);
+}
 export function monthLabel(month: string) {
   return new Intl.DateTimeFormat('es-AR', {
     month: 'long',

@@ -32,6 +32,11 @@ export async function Catalog({
             : 'Organizá tus ingresos y gastos por categoría.'
         }
       >
+        {finance && (
+          <Link href="/cuentas/transferencias" className={ui.secondary}>
+            Transferencias
+          </Link>
+        )}
         <Link className={ui.secondary} href={base + '?nueva=1'}>
           <Plus size={16} /> Nueva {noun}
         </Link>

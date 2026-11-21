@@ -8,3 +8,5 @@ playwright-report/
 supabase/.temp/
 supabase/.branches/
 coverage/
+backups/
+*.dump

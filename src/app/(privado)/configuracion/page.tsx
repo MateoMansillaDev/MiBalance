@@ -16,11 +16,23 @@ async function setTheme(form: FormData) {
     httpOnly: true,
     maxAge: 31536000,
   });
+  (await cookies()).set(
+    'mb-compare',
+    form.get('comparison') === 'on' ? 'show' : 'hide',
+    {
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: true,
+      maxAge: 31536000,
+    },
+  );
   revalidatePath('/', 'layout');
 }
 export default async function Settings() {
   const { user } = await requireUser();
-  const theme = (await cookies()).get('mb-theme')?.value ?? 'system';
+  const prefs = await cookies();
+  const theme = prefs.get('mb-theme')?.value ?? 'system';
+  const showComparison = prefs.get('mb-compare')?.value !== 'hide';
   return (
     <>
       <Heading title="Configuración" />
@@ -36,6 +48,16 @@ export default async function Settings() {
                 <option value="dark">Oscuro</option>
               </select>
             </label>
+            <label>
+              <span>
+                <input
+                  type="checkbox"
+                  name="comparison"
+                  defaultChecked={showComparison}
+                />{' '}
+                Mostrar comparativa mensual en Resumen
+              </span>
+            </label>
             <button className={ui.secondary}>Guardar preferencia</button>
           </form>
         </section>
@@ -45,6 +67,17 @@ export default async function Settings() {
           <form action={signOut}>
             <button className={ui.secondary}>Cerrar sesión</button>
           </form>
+        </section>
+        <section className={ui.panel}>
+          <h2>Instalar MiBalance</h2>
+          <p>
+            En Chrome o Edge, elegí instalar desde el menú del navegador. En
+            Safari de iPhone, usá Compartir y Agregar a inicio.
+          </p>
+          <p>
+            Necesitás conexión para consultar tus saldos y registrar
+            operaciones.
+          </p>
         </section>
         <section className={ui.panel}>
           <h2>Preferencias regionales</h2>

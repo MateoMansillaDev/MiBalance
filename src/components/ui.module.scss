@@ -72,6 +72,14 @@
 .form select {
   width: 100%;
 }
+.form input[type='checkbox'] {
+  width: auto;
+  margin-inline-end: 0.35rem;
+  accent-color: var(--brand);
+}
+.sectionGap {
+  margin-top: 1rem;
+}
 .actions,
 .between,
 .textLink {
