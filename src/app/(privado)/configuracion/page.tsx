@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { Archive, Cloud, Lock, Palette, Smartphone, type LucideIcon } from 'lucide-react';
 import { Heading } from '@/components/Heading';
 import { PinSettings } from '@/components/PinSettings';
 import { BackupTools } from '@/components/BackupTools';
@@ -15,22 +16,31 @@ function applyTheme(theme: string) {
   else delete root.dataset.theme;
 }
 
-function Row({
+function Card({
+  icon: Icon,
   title,
   description,
+  size,
   children,
 }: {
+  icon: LucideIcon;
   title: string;
-  description: React.ReactNode;
+  description: string;
+  size: 'wide' | 'side' | 'half' | 'quarter';
   children: React.ReactNode;
 }) {
   return (
-    <section className={[ui.panel, s.row].join(' ')}>
-      <header>
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </header>
-      <div>{children}</div>
+    <section className={[ui.panel, s.card, s[size]].join(' ')} aria-label={title}>
+      <div className={s.head}>
+        <span className={ui.tile}>
+          <Icon size={20} aria-hidden="true" />
+        </span>
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+      <div className={s.body}>{children}</div>
     </section>
   );
 }
@@ -42,14 +52,21 @@ export default function Settings() {
   return (
     <>
       <Heading title="Configuración" description="Preferencias de este dispositivo y tus datos." />
-      <div className={s.list}>
-        <Row
+      <div className={s.grid}>
+        <Card
+          size="wide"
+          icon={Cloud}
           title="Google Drive"
           description="Guardá tus datos en tu propio Drive, en una carpeta privada de la app, para usarlos en otros dispositivos y no perderlos. MiBalance no ve tus otros archivos."
         >
           <SyncPanel />
-        </Row>
-        <Row title="Apariencia" description="Se aplica al instante y solo en este dispositivo.">
+        </Card>
+        <Card
+          size="side"
+          icon={Palette}
+          title="Apariencia"
+          description="Se aplica al instante en este dispositivo."
+        >
           <div className={ui.form}>
             <label>
               Tema
@@ -82,28 +99,44 @@ export default function Settings() {
               </span>
             </label>
           </div>
-        </Row>
-        <Row
+        </Card>
+        <Card
+          size="half"
+          icon={Lock}
           title="Bloqueo con PIN"
-          description="Pide un PIN al abrir MiBalance y tras 5 minutos en segundo plano. Protege la pantalla de este dispositivo."
+          description="Pide un PIN al abrir MiBalance y tras 5 minutos en segundo plano."
         >
           <PinSettings />
-        </Row>
-        <Row
+        </Card>
+        <Card
+          size="quarter"
+          icon={Archive}
           title="Respaldo"
           description="Un archivo con todos tus datos. Al restaurarlo se combina con lo que ya tenés."
         >
           <BackupTools />
-        </Row>
-        <Row
+        </Card>
+        <Card
+          size="quarter"
+          icon={Smartphone}
           title="Instalar la app"
-          description="En Chrome o Edge, usá Instalar desde el menú. En iPhone, Compartir → Agregar a inicio."
+          description="En Chrome o Edge: Instalar desde el menú. En iPhone: Compartir → Agregar a inicio."
         >
-          <div className={s.compact}>
-            <span>Funciona sin conexión después de la primera visita.</span>
-            <span>Pesos argentinos (ARS) · Zona horaria de Córdoba</span>
-          </div>
-        </Row>
+          <ul className={s.facts}>
+            <li>
+              <span>Sin conexión</span>
+              <span>Sí</span>
+            </li>
+            <li>
+              <span>Moneda</span>
+              <span>ARS y USD</span>
+            </li>
+            <li>
+              <span>Zona horaria</span>
+              <span>Córdoba</span>
+            </li>
+          </ul>
+        </Card>
       </div>
     </>
   );

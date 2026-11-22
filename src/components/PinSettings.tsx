@@ -2,6 +2,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { checkPin, clearPin, lockNow, readPin, savePin, validPin } from '@/lib/pin';
 import ui from './ui.module.scss';
+import s from './pin.module.scss';
 
 export function PinSettings() {
   const stored = useSyncExternalStore(
@@ -52,13 +53,13 @@ export function PinSettings() {
       }}
     >
       <p>{hasPin ? 'PIN activado en este dispositivo.' : 'Sin PIN en este dispositivo.'}</p>
+      <div className={s.fields}>
       {hasPin && (
         <label>
           PIN actual
           <input name="current" type="password" inputMode="numeric" maxLength={8} autoComplete="off" />
         </label>
       )}
-      <div className={ui.pair}>
         <label>
           {hasPin ? 'PIN nuevo' : 'PIN'} (4 a 8 números)
           <input name="pin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" />
