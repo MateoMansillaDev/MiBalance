@@ -11,11 +11,7 @@ export function BackupTools() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   return (
-    <div className={ui.form}>
-      <p>
-        Tus datos viven en este dispositivo. Si no sincronizás con Google
-        Drive, descargá un respaldo de vez en cuando.
-      </p>
+    <div>
       <div className={ui.actions}>
         <button
           type="button"
@@ -33,11 +29,11 @@ export function BackupTools() {
         >
           Descargar respaldo
         </button>
-      </div>
-      <label>
-        Restaurar un respaldo
-        <input
-          type="file"
+        <label className={ui.secondary}>
+          Restaurar respaldo
+          <input
+            className={ui.sr}
+            type="file"
           accept="application/json,.json"
           onChange={async (event) => {
             setMessage('');
@@ -53,8 +49,9 @@ export function BackupTools() {
             }
             event.target.value = '';
           }}
-        />
-      </label>
+          />
+        </label>
+      </div>
       {error && (
         <p role="alert" className={ui.notice}>
           {error}

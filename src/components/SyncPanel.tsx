@@ -11,12 +11,6 @@ export function SyncPanel() {
     return <p>La sincronización no está configurada en esta versión de MiBalance.</p>;
   return (
     <div className={ui.form}>
-      <p>
-        Guardá una copia de tus datos en <strong>tu propio Google Drive</strong>,
-        en una carpeta privada de la app. MiBalance solo puede ver esa carpeta,
-        nunca tus otros archivos. Así podés usar los mismos datos en tu celular
-        y en tu compu, y recuperarlos si cambiás de dispositivo.
-      </p>
       {sync.enabled ? (
         <>
           <p>

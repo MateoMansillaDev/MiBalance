@@ -105,7 +105,6 @@ test('catálogos, movimientos, resumen, filtros y persistencia local', async ({ 
     .getByRole('link', { name: 'Configuración', exact: true })
     .click();
   await page.getByLabel('Tema').selectOption('dark');
-  await page.getByRole('button', { name: 'Guardar preferencia' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

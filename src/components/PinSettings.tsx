@@ -51,13 +51,7 @@ export function PinSettings() {
         event.currentTarget.reset();
       }}
     >
-      <p>
-        {hasPin
-          ? 'Este dispositivo pide el PIN al abrir MiBalance y tras 5 minutos en segundo plano.'
-          : 'Pedí un PIN al abrir MiBalance en este dispositivo.'}{' '}
-        Es una protección de privacidad local: tu contraseña sigue siendo la que
-        protege la cuenta.
-      </p>
+      <p>{hasPin ? 'PIN activado en este dispositivo.' : 'Sin PIN en este dispositivo.'}</p>
       {hasPin && (
         <label>
           PIN actual

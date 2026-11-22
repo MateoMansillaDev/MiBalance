@@ -99,7 +99,6 @@ test('transferir, metas, comparación, saldos ocultos, cuotas, dólares y PIN', 
   // Preferencia de comparativa.
   await page.getByRole('link', { name: 'Configuración', exact: true }).click();
   await page.getByLabel('Mostrar comparativa mensual en Resumen').uncheck();
-  await page.getByRole('button', { name: 'Guardar preferencia' }).click();
   await page.getByRole('link', { name: 'Resumen', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Comparativa mensual' })).toHaveCount(0);
 
