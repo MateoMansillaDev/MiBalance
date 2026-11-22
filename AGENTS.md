@@ -72,6 +72,17 @@ Antes de añadir dependencias o usar API que puedan haber cambiado, consultar do
 - Proyección de fin de mes, tendencia de seis meses, cambios por categoría y próximos vencimientos.
 - Edición de transferencias, colores e íconos de categoría, íconos de la PWA y bloqueo local con PIN.
 
+### Fase 5 — Local-first con Google Drive y app Android (autorizada por el usuario)
+
+Decisión del usuario: los datos dejan de vivir en Supabase. Viven en el dispositivo y se sincronizan con un archivo en su propio Google Drive. La app se empaqueta para Android con Capacitor.
+
+- **Etapa 1 — núcleo local** (`src/local/`): documento con un registro por id, sellos de modificación y lápidas; `Book` aplica las reglas que antes imponía PostgreSQL; `views.ts` reemplaza vistas y funciones; `merge.ts` combina copias (gana la última escritura, conmutativa e idempotente); IDs estables para sugerencias, vencimientos y cuotas para no duplicar entre dispositivos; persistencia en IndexedDB.
+- **Etapa 2 — pantallas**: componentes cliente sobre el núcleo local, sin Supabase, server actions ni middleware; `output: 'export'`.
+- **Etapa 3 — Drive**: inicio de sesión con Google, scope no sensible `drive.appdata`, archivo único en la carpeta de datos de la app, combinar antes de subir.
+- **Etapa 4 — Android**: Capacitor, inicio de sesión nativo de Google, APK.
+
+Reglas de esta fase: el documento leído de Drive o del dispositivo se valida con Zod antes de usarse; ningún secreto de cliente OAuth en el código; los importes siguen en centavos como texto y se suman con `bigint`; Supabase y sus pruebas se retiran recién cuando la etapa 2 esté verificada.
+
 **No avanzar de fase sin autorización del usuario.**
 
 ## 4. Reglas del dominio financiero
