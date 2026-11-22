@@ -1,6 +1,6 @@
 # MiBalance
 
-Aplicación personal para registrar ingresos y gastos en pesos argentinos (y cuentas en dólares). Funciona **en el dispositivo**: tus datos se guardan en el navegador o en la app, sin cuenta ni servidor, y la app sigue andando sin conexión. La sincronización con tu propio Google Drive llega en la etapa 3 de la fase 5 y la app Android en la etapa 4.
+Aplicación personal para registrar ingresos y gastos en pesos argentinos (y cuentas en dólares). Funciona **en el dispositivo**: tus datos se guardan en el navegador o en la app, sin cuenta ni servidor, y la app sigue andando sin conexión. Opcionalmente, cada persona puede sincronizar sus datos con su propio Google Drive. La app Android llega en la etapa 4 de la fase 5.
 
 ## Inicio local
 
@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Abrí [MiBalance local](http://127.0.0.1:3000). En el primer uso se crean **Efectivo** y seis categorías editables, una sola vez por dispositivo. No hace falta registrarse ni configurar variables.
+Abrí [MiBalance local](http://127.0.0.1:3000). En el primer uso se crean **Efectivo** y seis categorías editables, una sola vez por dispositivo. No hace falta registrarse. Para probar la sincronización, cargá el ID de cliente de Google en `.env.local` (ver más abajo).
 
 Si venías de una versión con Supabase, quitá esas dependencias una vez con `npm uninstall @supabase/ssr @supabase/supabase-js supabase` (actualiza el `package-lock.json`). Los datos de la base anterior no se trasladan solos: exportalos como CSV desde la versión anterior e importalos acá.
 
@@ -22,6 +22,15 @@ Si venías de una versión con Supabase, quitá esas dependencias una vez con `n
 - Cada registro lleva su sello de modificación y los borrados quedan como lápidas. Al combinar dos copias (`src/local/merge.ts`) gana la última escritura de cada registro; la combinación da el mismo resultado sin importar el orden. Las sugerencias iniciales, los vencimientos recurrentes y las cuotas usan identificadores estables, así dos dispositivos sin conexión no los duplican.
 - En **Configuración → Tus datos** podés descargar un respaldo JSON y restaurarlo: se combina con lo que ya hay. Todo archivo leído se valida antes de usarse.
 - Las preferencias (tema, comparativa, saldos ocultos, PIN) son de cada dispositivo.
+
+## Sincronización con Google Drive
+
+En **Configuración → Sincronización con Google Drive**, cada persona conecta **su propia cuenta de Google**. MiBalance guarda un archivo `mibalance.json` en la carpeta privada de la app dentro del Drive de esa persona, con el permiso `drive.appdata`: la app solo ve esa carpeta, nunca los demás archivos. No hay servidor intermedio: el navegador habla directo con Drive y el token de acceso vive en memoria.
+
+- Al sincronizar se baja el archivo, se valida, se combina con la copia local (gana el cambio más reciente de cada registro) y se sube el resultado. Después de cada cambio se sincroniza solo, unos segundos más tarde, mientras la sesión de Google siga activa.
+- En la web, Google entrega tokens de corta duración: al volver a abrir la app, el botón **Sincronizar con Drive** de la barra superior pide la sesión de nuevo con un clic.
+- **Desconectar** deja de sincronizar en ese dispositivo; los datos siguen en el dispositivo y en Drive.
+- El uso de la API de Drive no tiene costo. Para configurarla hace falta un proyecto de Google Cloud con la API de Drive habilitada, la app registrada en Google Auth Platform (público externo, permiso `drive.appdata`) y un ID de cliente de tipo *Aplicación web* con los orígenes desde donde se sirve MiBalance (`http://127.0.0.1:3000` y `http://localhost:3000` para desarrollo, y el dominio con HTTPS al publicar). El ID va en `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (ver `.env.example`); es público, no un secreto. Mientras la app esté en modo prueba, solo pueden conectarse las cuentas cargadas como usuarios de prueba.
 
 ## Funciones
 

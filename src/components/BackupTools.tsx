@@ -13,8 +13,8 @@ export function BackupTools() {
   return (
     <div className={ui.form}>
       <p>
-        Tus datos viven en este dispositivo. Descargá un respaldo de vez en
-        cuando o, cuando esté disponible, sincronizalos con tu Google Drive.
+        Tus datos viven en este dispositivo. Si no sincronizás con Google
+        Drive, descargá un respaldo de vez en cuando.
       </p>
       <div className={ui.actions}>
         <button

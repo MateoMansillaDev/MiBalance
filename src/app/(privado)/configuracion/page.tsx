@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Heading } from '@/components/Heading';
 import { PinSettings } from '@/components/PinSettings';
 import { BackupTools } from '@/components/BackupTools';
+import { SyncPanel } from '@/components/SyncPanel';
 import { PREFS, readPref, writePref } from '@/lib/preferences';
 import { useTitle } from '@/lib/page';
 import ui from '@/components/ui.module.scss';
@@ -70,6 +71,10 @@ export default function Settings() {
         <section className={ui.panel}>
           <h2>Bloqueo con PIN</h2>
           <PinSettings />
+        </section>
+        <section className={ui.panel}>
+          <h2>Sincronización con Google Drive</h2>
+          <SyncPanel />
         </section>
         <section className={ui.panel}>
           <h2>Tus datos</h2>

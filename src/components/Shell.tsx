@@ -12,6 +12,7 @@ import {
   CircleUserRound,
 } from 'lucide-react';
 import { Brand } from './Brand';
+import { SyncBadge } from './SyncPanel';
 import ui from './ui.module.scss';
 import s from './shell.module.scss';
 const links = [
@@ -49,9 +50,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div>
             <CircleUserRound size={19} /> Espacio personal
           </div>
-          <Link className={ui.primary} href="/movimientos/editar">
-            <Plus size={17} /> Agregar movimiento
-          </Link>
+          <div>
+            <SyncBadge />
+            <Link className={ui.primary} href="/movimientos/editar">
+              <Plus size={17} /> Agregar movimiento
+            </Link>
+          </div>
         </header>
         <main id="contenido" tabIndex={-1} className={s.content}>
           {children}
