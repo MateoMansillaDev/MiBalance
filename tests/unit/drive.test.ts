@@ -43,3 +43,17 @@ describe('archivo de MiBalance en Drive', () => {
     );
   });
 });
+
+describe('mensajes de error de Drive', () => {
+  it('explica que falta habilitar la API', async () => {
+    fakeFetch([
+      new Response(JSON.stringify({ error: { errors: [{ reason: 'accessNotConfigured' }] } }), {
+        status: 403,
+      }),
+    ]);
+    await findFile('t').then(
+      () => expect(true).toBe(false),
+      (e) => expect(String(e.message)).toMatch(/no está habilitada/),
+    );
+  });
+});

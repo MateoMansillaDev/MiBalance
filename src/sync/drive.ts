@@ -6,6 +6,23 @@ export const FILE_NAME = 'mibalance.json';
 const MAX_BYTES = 50 * 1024 * 1024;
 
 export class AuthError extends Error {}
+/** Traduce los motivos de error más comunes de la API de Drive. */
+async function explain(res: Response) {
+  let reason = '';
+  try {
+    const body = (await res.json()) as { error?: { errors?: { reason?: string }[]; status?: string } };
+    reason = body.error?.errors?.[0]?.reason ?? body.error?.status ?? '';
+  } catch {}
+  if (reason === 'accessNotConfigured' || reason === 'SERVICE_DISABLED')
+    return 'La API de Google Drive no está habilitada en el proyecto de Google Cloud de la app.';
+  if (reason === 'insufficientPermissions' || reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT')
+    return 'Falta el permiso para guardar en Drive. Volvé a conectar y aceptá el acceso.';
+  if (reason === 'storageQuotaExceeded')
+    return 'Tu Google Drive no tiene espacio libre.';
+  if (reason === 'rateLimitExceeded' || reason === 'userRateLimitExceeded' || res.status === 429)
+    return 'Google Drive pidió esperar un momento. Se va a reintentar más tarde.';
+  return 'Google Drive respondió con un error (' + res.status + (reason ? ': ' + reason : '') + ').';
+}
 async function call(token: string, url: string, init: RequestInit = {}) {
   let res: Response;
   try {
@@ -17,7 +34,7 @@ async function call(token: string, url: string, init: RequestInit = {}) {
     throw new Error('Sin conexión con Google Drive. Se va a reintentar más tarde.');
   }
   if (res.status === 401) throw new AuthError('Tu sesión de Google venció.');
-  if (!res.ok) throw new Error('Google Drive respondió con un error (' + res.status + ').');
+  if (!res.ok) throw new Error(await explain(res));
   return res;
 }
 export async function findFile(token: string) {
