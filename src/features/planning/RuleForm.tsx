@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { MutationForm } from '@/components/MutationForm';
-import { addRule } from './actions';
+import { addRule } from '@/local/actions';
 import type { Account, Category, Direction } from '@/lib/domain';
 import ui from '@/components/ui.module.scss';
 
@@ -20,7 +20,7 @@ export function RuleForm({
     const id = requestId || crypto.randomUUID();
     setRequestId(id);
     form.set('id', id);
-    const result = await addRule(form);
+    const result = addRule(form);
     if ('message' in result) {
       setRequestId('');
       setType('expense');

@@ -333,12 +333,16 @@ export class Book {
   }
 
   // ---------- repeticiones ----------
-  saveRule(input: RuleInput) {
+  saveRule(input: RuleInput, id: string = newId()) {
     const { clean } = this.checkMovement(input);
     if (!['weekly', 'monthly'].includes(input.frequency)) fail('Elegí una frecuencia.');
+    if (clean.occurred_on < '1900-01-01') fail('La primera fecha debe ser posterior a 1899.');
+    // Reintento del mismo alta: no se duplica.
+    const prior = this.get('rules', id);
+    if (prior) return prior;
     return this.put('rules', {
       ...clean,
-      id: newId(),
+      id,
       frequency: input.frequency,
       starts_on: clean.occurred_on,
       next_due: clean.occurred_on,

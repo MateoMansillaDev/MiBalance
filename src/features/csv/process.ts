@@ -1,9 +1,6 @@
-'use server';
-import { createHash } from 'node:crypto';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { requireUser } from '@/lib/supabase/server';
-import { accounts, categories } from '@/features/ledger/queries';
+'use client';
+import { mutate, currentBook } from '@/local/store';
+import { accountBalances, categoryList } from '@/local/views';
 import { CSV_BYTES } from './limits';
 import { decodeCsv } from './format';
 import { money } from '@/lib/money';
@@ -24,20 +21,18 @@ export type CsvResult =
         skip: boolean;
       }[];
     };
+/** Vista previa y confirmación de un CSV, con los mismos controles que la versión anterior. */
 export async function processCsv(
-  form: FormData,
+  file: File,
   confirmation?: { digest: string; skip: boolean[] },
 ): Promise<CsvResult> {
-  const { db, user } = await requireUser();
-  const file = form.get('file');
-  if (!(file instanceof File) || !file.size || file.size > CSV_BYTES)
-    return { error: 'Elegí un CSV UTF-8 de hasta 850 kB.' };
-  const [list, tags] = await Promise.all([accounts(), categories()]);
+  if (!file.size || file.size > CSV_BYTES) return { error: 'Elegí un CSV UTF-8 de hasta 850 kB.' };
+  const book = currentBook();
+  const list = accountBalances(book);
+  const tags = categoryList(book);
   let entries: ReturnType<typeof decodeCsv>;
   try {
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(
-      await file.arrayBuffer(),
-    );
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
     // Solo cuentas en pesos: una cuenta en dólares no figura y su fila se rechaza.
     entries = decodeCsv(
       text,
@@ -54,40 +49,30 @@ export async function processCsv(
             : 'No pudimos leer el CSV.',
     };
   }
-  const digest = (skip: boolean[]) =>
-    createHash('sha256')
-      .update(JSON.stringify([user.id, entries, skip]))
-      .digest('hex');
-  const flagsSchema = z.array(z.boolean()).length(entries.length);
+  const digest = (skip: boolean[]) => JSON.stringify([entries, skip]);
   if (
     confirmation &&
-    (!flagsSchema.safeParse(confirmation.skip).success ||
-      confirmation.digest !== digest(confirmation.skip))
+    (confirmation.skip.length !== entries.length || confirmation.digest !== digest(confirmation.skip))
   )
-    return {
-      error:
-        'El archivo o sus cuentas cambiaron. Volvé a revisar la vista previa.',
-    };
+    return { error: 'El archivo o sus cuentas cambiaron. Volvé a revisar la vista previa.' };
   // Una fila omitida en la vista previa debe seguir omitida aunque cambie el historial.
-  const items = confirmation
-    ? entries.filter((_, i) => !confirmation.skip[i])
-    : entries;
+  const items = confirmation ? entries.filter((_, i) => !confirmation.skip[i]) : entries;
   if (!items.length) return { imported: 0, duplicates: entries.length };
-  const { data, error } = await db.rpc('csv_batch', {
-    items,
-    apply_rows: Boolean(confirmation),
-  });
-  const result = z.array(z.boolean()).length(items.length).safeParse(data);
-  if (error || !result.success)
-    return {
-      error:
-        'No pudimos procesar el lote. Revisá la conexión y volvé a intentarlo.',
-    };
-  const flags = result.data;
+  const rows = items.map((e) => ({ ...e, reference: e.reference ?? null }));
   if (confirmation) {
-    revalidatePath('/', 'layout');
+    let flags: boolean[] = [];
+    const result = mutate((b) => {
+      flags = b.csvBatch(rows, true);
+    });
+    if ('error' in result) return result;
     const imported = flags.filter((skip) => !skip).length;
     return { imported, duplicates: entries.length - imported };
+  }
+  let flags: boolean[];
+  try {
+    flags = currentBook().csvBatch(rows, false);
+  } catch (error) {
+    return { error: (error as Error).message };
   }
   const accountNames = new Map(list.map((item) => [item.id, item.name]));
   const categoryNames = new Map(tags.map((item) => [item.id, item.name]));

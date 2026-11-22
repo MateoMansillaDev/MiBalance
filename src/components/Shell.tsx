@@ -8,12 +8,10 @@ import {
   Tags,
   Settings,
   CalendarDays,
-  LogOut,
   Plus,
   CircleUserRound,
 } from 'lucide-react';
 import { Brand } from './Brand';
-import { signOut } from '@/features/auth/actions';
 import ui from './ui.module.scss';
 import s from './shell.module.scss';
 const links = [
@@ -45,18 +43,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
-        <form action={signOut} className={s.logout}>
-          <button>
-            <LogOut size={17} /> Cerrar sesión
-          </button>
-        </form>
       </aside>
       <div className={s.workspace}>
         <header className={s.top}>
           <div>
             <CircleUserRound size={19} /> Espacio personal
           </div>
-          <Link className={ui.primary} href="/movimientos/nuevo">
+          <Link className={ui.primary} href="/movimientos/editar">
             <Plus size={17} /> Agregar movimiento
           </Link>
         </header>

@@ -9,15 +9,11 @@
   "scripts": {
     "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
-    "start": "next start",
+    "start": "node tests/static-server.mjs",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test",
-    "test:db": "node --test tests/database.test.mjs tests/planning.test.mjs tests/advanced.test.mjs tests/cards.test.mjs",
-    "test:backup": "node --test tests/backup.test.mjs",
-    "db:start": "supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
-    "db:env": "node scripts/local-env.mjs"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

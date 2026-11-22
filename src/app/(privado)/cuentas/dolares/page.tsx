@@ -1,14 +1,15 @@
+'use client';
 import Link from 'next/link';
+import { useBook } from '@/local/store';
+import { accountBalances } from '@/local/views';
+import { useTitle } from '@/lib/page';
 import { Heading } from '@/components/Heading';
 import { MutationForm } from '@/components/MutationForm';
-import { removeItem, saveExchange } from '@/features/accounts/advanced-actions';
-import { accounts, allRows } from '@/features/ledger/queries';
-import { requireUser } from '@/lib/supabase/server';
+import { removeItem, saveExchange } from '@/local/actions';
 import { dateLabel, today } from '@/lib/dates';
 import { money } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
-export const metadata = { title: 'Compra y venta de dólares' };
 
 type Exchange = {
   id: string;
@@ -21,23 +22,19 @@ type Exchange = {
   occurred_on: string;
   description: string;
 };
-export default async function Dollars() {
-  const { db, user } = await requireUser();
-  const [list, history] = await Promise.all([
-    accounts(),
-    allRows<Exchange>((offset) =>
-      db
-        .from('exchanges')
-        .select(
-          'id,source_id,destination_id,source_currency,destination_currency,source_cents::text,destination_cents::text,occurred_on,description',
-        )
-        .eq('user_id', user.id)
-        .order('occurred_on', { ascending: false })
-        .order('id', { ascending: false })
-        .range(offset, offset + 199)
-        .returns<Exchange[]>(),
-    ),
-  ]);
+export default function Dollars() {
+  useTitle('Compra y venta de dólares');
+  const book = useBook();
+  const list = accountBalances(book);
+  const currencyOf = new Map(list.map((a) => [a.id, a.currency]));
+  const history: Exchange[] = book
+    .live('exchanges')
+    .map((e) => ({
+      ...e,
+      source_currency: currencyOf.get(e.source_id) ?? 'ARS',
+      destination_currency: currencyOf.get(e.destination_id) ?? 'ARS',
+    }))
+    .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on) || b.id.localeCompare(a.id));
   const names = new Map(list.map((a) => [a.id, a.name]));
   const hasBoth =
     list.some((a) => a.currency === 'ARS') &&

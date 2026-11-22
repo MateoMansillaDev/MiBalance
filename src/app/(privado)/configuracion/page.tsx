@@ -1,49 +1,49 @@
-import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
-import { requireUser } from '@/lib/supabase/server';
-import { signOut } from '@/features/auth/actions';
+'use client';
+import { useState } from 'react';
 import { Heading } from '@/components/Heading';
 import { PinSettings } from '@/components/PinSettings';
+import { BackupTools } from '@/components/BackupTools';
+import { PREFS, readPref, writePref } from '@/lib/preferences';
+import { useTitle } from '@/lib/page';
 import ui from '@/components/ui.module.scss';
-export const metadata = { title: 'Configuración' };
-async function setTheme(form: FormData) {
-  'use server';
-  await requireUser();
-  const theme = String(form.get('theme'));
-  if (!['system', 'light', 'dark'].includes(theme)) return;
-  (await cookies()).set('mb-theme', theme, {
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: true,
-    maxAge: 31536000,
-  });
-  (await cookies()).set(
-    'mb-compare',
-    form.get('comparison') === 'on' ? 'show' : 'hide',
-    {
-      path: '/',
-      sameSite: 'lax',
-      httpOnly: true,
-      maxAge: 31536000,
-    },
-  );
-  revalidatePath('/', 'layout');
+
+function applyTheme(theme: string) {
+  const root = document.documentElement;
+  if (theme === 'dark' || theme === 'light') root.dataset.theme = theme;
+  else delete root.dataset.theme;
 }
-export default async function Settings() {
-  const { user } = await requireUser();
-  const prefs = await cookies();
-  const theme = prefs.get('mb-theme')?.value ?? 'system';
-  const showComparison = prefs.get('mb-compare')?.value !== 'hide';
+
+export default function Settings() {
+  useTitle('Configuración');
+  const [theme, setTheme] = useState(() => readPref(PREFS.theme) ?? 'system');
+  const [compare, setCompare] = useState(() => readPref(PREFS.compare) !== 'hide');
+  const [saved, setSaved] = useState(false);
   return (
     <>
       <Heading title="Configuración" />
       <div className={ui.catalog}>
         <section className={ui.panel}>
           <h2>Apariencia</h2>
-          <form action={setTheme} className={ui.form}>
+          <form
+            className={ui.form}
+            onSubmit={(event) => {
+              event.preventDefault();
+              writePref(PREFS.theme, theme);
+              writePref(PREFS.compare, compare ? 'show' : 'hide');
+              applyTheme(theme);
+              setSaved(true);
+            }}
+          >
             <label>
               Tema
-              <select name="theme" defaultValue={theme}>
+              <select
+                name="theme"
+                value={theme}
+                onChange={(e) => {
+                  setTheme(e.target.value);
+                  setSaved(false);
+                }}
+              >
                 <option value="system">Según el sistema</option>
                 <option value="light">Claro</option>
                 <option value="dark">Oscuro</option>
@@ -54,12 +54,17 @@ export default async function Settings() {
                 <input
                   type="checkbox"
                   name="comparison"
-                  defaultChecked={showComparison}
+                  checked={compare}
+                  onChange={(e) => {
+                    setCompare(e.target.checked);
+                    setSaved(false);
+                  }}
                 />{' '}
                 Mostrar comparativa mensual en Resumen
               </span>
             </label>
             <button className={ui.secondary}>Guardar preferencia</button>
+            {saved && <p role="status">Preferencias guardadas en este dispositivo.</p>}
           </form>
         </section>
         <section className={ui.panel}>
@@ -67,11 +72,8 @@ export default async function Settings() {
           <PinSettings />
         </section>
         <section className={ui.panel}>
-          <h2>Tu sesión</h2>
-          <p>{user.email}</p>
-          <form action={signOut}>
-            <button className={ui.secondary}>Cerrar sesión</button>
-          </form>
+          <h2>Tus datos</h2>
+          <BackupTools />
         </section>
         <section className={ui.panel}>
           <h2>Instalar MiBalance</h2>
@@ -80,8 +82,8 @@ export default async function Settings() {
             Safari de iPhone, usá Compartir y Agregar a inicio.
           </p>
           <p>
-            Necesitás conexión para consultar tus saldos y registrar
-            operaciones.
+            Tus datos se guardan en este dispositivo y la app funciona sin
+            conexión después de la primera visita.
           </p>
         </section>
         <section className={ui.panel}>

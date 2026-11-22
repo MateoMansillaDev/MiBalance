@@ -19,6 +19,8 @@ Construir una aplicación web **real, privada, responsive y mantenible** para re
 
 ## 2. Stack tecnológico
 
+> **Desde la fase 5** los datos ya no usan Supabase: viven en el dispositivo (`src/local/`) y la app se exporta como sitio estático. Las secciones de Supabase, RLS y autenticación por correo describen fases anteriores; las reglas de dominio siguen vigentes y se aplican en `src/local/book.ts`.
+
 - **Next.js** con **App Router**, **React**, **TypeScript** en modo estricto.
 - **SCSS Modules** y variables/tokens de diseño; no Tailwind, salvo autorización expresa.
 - **Supabase**: PostgreSQL para persistencia y Supabase Auth para autenticación.

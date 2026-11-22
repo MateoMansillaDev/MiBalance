@@ -1,49 +1,33 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
-import { signOut } from '@/features/auth/actions';
-import {
-  checkPin,
-  clearPin,
-  isUnlocked,
-  lockNow,
-  markUnlocked,
-  readPin,
-  syncCookie,
-} from '@/lib/pin';
+import { checkPin, clearPin, isUnlocked, lockNow, markUnlocked, readPin } from '@/lib/pin';
+import { wipeDevice } from '@/local/store';
 import ui from './ui.module.scss';
 import s from './pin.module.scss';
 
 const IDLE_MS = 5 * 60 * 1000;
 
-export function PinLock({
-  enabled,
-  children,
-}: {
-  enabled: boolean;
-  children: React.ReactNode;
-}) {
-  const [locked, setLocked] = useState(enabled);
+// Pantalla de privacidad local. Los datos se dibujan recién después de decidir
+// si hay que pedir el PIN: el HTML estático no contiene información financiera.
+export function PinLock({ children }: { children: React.ReactNode }) {
+  const [locked, setLocked] = useState(() => !!readPin() && !isUnlocked());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [fails, setFails] = useState(0);
 
   useEffect(() => {
-    const hasPin = !!readPin();
-    if (hasPin !== enabled) syncCookie(hasPin);
-    const apply = () => setLocked(hasPin && !isUnlocked());
-    apply();
     let hiddenAt = 0;
     const onVisibility = () => {
       if (document.hidden) hiddenAt = Date.now();
-      else if (hasPin && hiddenAt && Date.now() - hiddenAt > IDLE_MS) {
+      else if (readPin() && hiddenAt && Date.now() - hiddenAt > IDLE_MS) {
         lockNow();
-        apply();
+        setLocked(true);
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [enabled]);
+  }, []);
 
   async function unlock(form: FormData) {
     if (fails >= 5) return;
@@ -68,58 +52,59 @@ export function PinLock({
     } else setError('PIN incorrecto.');
   }
 
+  if (!locked) return <>{children}</>;
   return (
-    <>
-      <div inert={locked} aria-hidden={locked || undefined}>
-        {children}
-      </div>
-      {locked && (
-        <div
-          className={s.lock}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="pin-title"
-        >
-          <form
-            className={s.box}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void unlock(new FormData(event.currentTarget));
-            }}
-          >
-            <span className={ui.tile}>
-              <Lock size={21} />
-            </span>
-            <h1 id="pin-title">MiBalance está bloqueado</h1>
-            <label>
-              PIN
-              <input
-                name="pin"
-                type="password"
-                inputMode="numeric"
-                autoComplete="off"
-                pattern="\d{4,8}"
-                maxLength={8}
-                required
-                autoFocus
-              />
-            </label>
-            {error && (
-              <p role="alert" className={ui.notice}>
-                {error}
-              </p>
-            )}
-            <button className={ui.primary} disabled={busy || fails >= 5}>
-              {busy ? 'Verificando…' : 'Desbloquear'}
-            </button>
-          </form>
-          <form action={signOut} onSubmit={() => clearPin()}>
-            <button className={s.forgot}>
-              Olvidé mi PIN: cerrar sesión y quitarlo
-            </button>
-          </form>
-        </div>
-      )}
-    </>
+    <div className={s.lock} role="dialog" aria-modal="true" aria-labelledby="pin-title">
+      <form
+        className={s.box}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void unlock(new FormData(event.currentTarget));
+        }}
+      >
+        <span className={ui.tile}>
+          <Lock size={21} />
+        </span>
+        <h1 id="pin-title">MiBalance está bloqueado</h1>
+        <label>
+          PIN
+          <input
+            name="pin"
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            pattern="\d{4,8}"
+            maxLength={8}
+            required
+            autoFocus
+          />
+        </label>
+        {error && (
+          <p role="alert" className={ui.notice}>
+            {error}
+          </p>
+        )}
+        <button className={ui.primary} disabled={busy || fails >= 5}>
+          {busy ? 'Verificando…' : 'Desbloquear'}
+        </button>
+      </form>
+      <button
+        type="button"
+        className={s.forgot}
+        onClick={async () => {
+          if (
+            !window.confirm(
+              'Sin el PIN no se puede verificar quién sos. ¿Borrar los datos de este dispositivo y el PIN? Si sincronizás con Google Drive, vas a poder recuperarlos desde ahí.',
+            )
+          )
+            return;
+          await wipeDevice();
+          clearPin();
+          setLocked(false);
+        }}
+      >
+        Olvidé mi PIN
+      </button>
+    </div>
   );
 }

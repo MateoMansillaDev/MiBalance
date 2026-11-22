@@ -1,5 +1,3 @@
-import { PIN_COOKIE } from './preferences';
-
 // Pantalla de privacidad local: el PIN nunca sale del navegador ni se guarda
 // en claro, solo su derivación PBKDF2. No reemplaza la contraseña de la cuenta.
 const STORE = 'mb-pin';
@@ -41,10 +39,6 @@ export function readPin(): Stored | null {
     return null;
   }
 }
-function setCookie(on: boolean) {
-  document.cookie =
-    PIN_COOKIE + '=' + (on ? '1' : '0') + '; path=/; max-age=31536000; samesite=lax';
-}
 export function markUnlocked() {
   try {
     sessionStorage.setItem(UNLOCKED, '1');
@@ -65,7 +59,6 @@ export function lockNow() {
 export async function savePin(pin: string) {
   const salt = toBase64(crypto.getRandomValues(new Uint8Array(16)));
   localStorage.setItem(STORE, JSON.stringify({ salt, hash: await derive(pin, salt) }));
-  setCookie(true);
   markUnlocked();
 }
 export async function checkPin(pin: string) {
@@ -78,8 +71,4 @@ export function clearPin() {
     localStorage.removeItem(STORE);
     sessionStorage.removeItem(UNLOCKED);
   } catch {}
-  setCookie(false);
-}
-export function syncCookie(on: boolean) {
-  setCookie(on);
 }

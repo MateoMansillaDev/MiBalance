@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import ui from '@/components/ui.module.scss';
-import { HIDE_BALANCES_COOKIE } from '@/lib/preferences';
+import { PREFS, readPref, writePref } from '@/lib/preferences';
 import s from './balances.module.scss';
 
 type Row = { id: string; name: string; amount: string };
@@ -26,23 +26,17 @@ export function AccountBalances({
   details,
   rows,
   cards,
-  initiallyHidden,
 }: {
   total: string;
   details: string[];
   rows: Row[];
   cards: Row[];
-  initiallyHidden: boolean;
 }) {
-  const [hidden, setHidden] = useState(initiallyHidden);
+  const [hidden, setHidden] = useState(() => readPref(PREFS.hideBalances) === '1');
   function toggle() {
     const next = !hidden;
     setHidden(next);
-    document.cookie =
-      HIDE_BALANCES_COOKIE +
-      '=' +
-      (next ? '1' : '0') +
-      '; path=/; max-age=31536000; samesite=lax';
+    writePref(PREFS.hideBalances, next ? '1' : '0');
   }
   const Icon = hidden ? Eye : EyeOff;
   return (

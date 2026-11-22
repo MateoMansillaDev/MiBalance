@@ -1,23 +1,23 @@
+'use client';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useBook } from '@/local/store';
+import { accountBalances } from '@/local/views';
+import { useTitle, withSuspense } from '@/lib/page';
 import { Heading } from '@/components/Heading';
 import { MutationForm } from '@/components/MutationForm';
 import { TransferForm } from '@/features/accounts/TransferForm';
-import { removeItem } from '@/features/accounts/advanced-actions';
-import { accounts } from '@/features/ledger/queries';
-import { uuid } from '@/lib/domain';
-import { requireUser } from '@/lib/supabase/server';
+import { removeItem } from '@/local/actions';
 import { dateLabel, today } from '@/lib/dates';
 import { money } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
-export const metadata = { title: 'Transferencias' };
 
-export default async function Transfers({
-  searchParams,
-}: {
-  searchParams: Promise<{ pagina?: string; editar?: string }>;
-}) {
-  const params = await searchParams;
+export default withSuspense(function Transfers() {
+  useTitle('Transferencias');
+  const book = useBook();
+  const search = useSearchParams();
+  const params = { pagina: search.get('pagina') ?? undefined, editar: search.get('editar') ?? undefined };
   const page = Number(params.pagina ?? 1);
   if (!Number.isSafeInteger(page) || page < 1 || page > 10000000)
     return (
@@ -26,34 +26,14 @@ export default async function Transfers({
         <Link href="/cuentas/transferencias">Volver al historial</Link>
       </p>
     );
-  const { db, user } = await requireUser();
-  const [list, history] = await Promise.all([
-    accounts(),
-    db
-      .from('transfers')
-      .select(
-        'id,source_id,destination_id,amount_cents::text,occurred_on,description',
-        { count: 'exact' },
-      )
-      .eq('user_id', user.id)
-      .order('occurred_on', { ascending: false })
-      .order('id', { ascending: false })
-      .range((page - 1) * 20, page * 20 - 1),
-  ]);
-  if (history.error)
-    throw new Error('No se pudo consultar el historial de transferencias.');
+  const list = accountBalances(book);
+  const all = book
+    .live('transfers')
+    .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on) || b.id.localeCompare(a.id));
+  const history = { data: all.slice((page - 1) * 20, page * 20), count: all.length };
   const names = new Map(list.map((a) => [a.id, a.name]));
   const currencyOf = new Map(list.map((a) => [a.id, a.currency]));
-  let editing = null;
-  if (params.editar && uuid.safeParse(params.editar).success) {
-    const found = await db
-      .from('transfers')
-      .select('id,source_id,destination_id,amount_cents::text,occurred_on,description')
-      .eq('user_id', user.id)
-      .eq('id', params.editar)
-      .maybeSingle();
-    editing = found.data;
-  }
+  const editing = params.editar ? (book.get('transfers', params.editar) ?? null) : null;
   return (
     <>
       <Heading
@@ -136,4 +116,4 @@ export default async function Transfers({
       </section>
     </>
   );
-}
+});

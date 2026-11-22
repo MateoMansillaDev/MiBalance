@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
-import { localInstance } from './tests/local-instance.mjs';
-const local = localInstance();
 const baseURL = 'http://127.0.0.1:3187';
+// Prueba la exportación estática (`npm run build` antes). Cada prueba usa un
+// contexto nuevo del navegador, con su propio almacenamiento local vacío.
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60000,
@@ -19,13 +19,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run start -- --hostname 127.0.0.1 --port 3187',
-    url: baseURL + '/ingresar',
+    command: 'node tests/static-server.mjs',
+    url: baseURL + '/resumen/',
     reuseExistingServer: false,
-    env: {
-      NEXT_PUBLIC_SUPABASE_URL: local.url,
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local.key,
-    },
     timeout: 60000,
   },
 });

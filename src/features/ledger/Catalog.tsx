@@ -1,5 +1,5 @@
+'use client';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import {
   Banknote,
   CreditCard,
@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { Heading } from '@/components/Heading';
 import { MutationForm } from '@/components/MutationForm';
-import { accounts, categories, exchangeRate } from './queries';
+import { useBook } from '@/local/store';
+import { accountBalances, categoryList } from '@/local/views';
 import { CatalogEditor } from './Editor';
-import { saveRate } from '@/features/accounts/advanced-actions';
+import { saveRate } from '@/local/actions';
 import { currencies, directions, kinds } from '@/lib/domain';
 import { categoryColor, iconSet } from '@/lib/categoryIcons';
 import { dateLabel } from '@/lib/dates';
@@ -24,7 +25,7 @@ const icons = {
   wallet: Wallet,
   credit: CreditCard,
 };
-export async function Catalog({
+export function Catalog({
   finance,
   edit,
   create,
@@ -33,12 +34,17 @@ export async function Catalog({
   edit?: string;
   create: boolean;
 }) {
-  const [rows, rate] = await Promise.all([
-    finance ? accounts() : categories(),
-    finance ? exchangeRate() : null,
-  ]);
+  const book = useBook();
+  const rows = finance ? accountBalances(book) : categoryList(book);
+  const rate = finance ? book.rate() : null;
   const selected = edit ? rows.find((row) => row.id === edit) : undefined;
-  if (edit && !selected) notFound();
+  if (edit && !selected)
+    return (
+      <p role="alert" className={ui.notice}>
+        Ese registro ya no está disponible.{' '}
+        <Link href={finance ? '/cuentas' : '/categorias'}>Volver</Link>
+      </p>
+    );
   const base = finance ? '/cuentas' : '/categorias';
   const noun = finance ? 'cuenta' : 'categoría';
   return (

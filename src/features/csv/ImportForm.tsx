@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState, useTransition } from 'react';
-import { processCsv, type CsvResult } from './actions';
+import { processCsv, type CsvResult } from './process';
 import { CSV_BYTES, csvColumns } from './limits';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
@@ -21,7 +21,7 @@ export function ImportForm() {
         ? { digest: state.digest, skip: state.preview.map((row) => row.skip) }
         : undefined;
     if (confirm && !confirmation) return;
-    start(async () => setState(await processCsv(data, confirmation)));
+    start(async () => setState(await processCsv(file, confirmation)));
   }
   return (
     <section className={ui.panel}>

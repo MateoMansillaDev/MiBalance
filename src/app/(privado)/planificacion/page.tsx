@@ -1,35 +1,39 @@
+'use client';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useBook } from '@/local/store';
+import {
+  accountBalances,
+  budgetProgress,
+  categoryList,
+  ruleSchedule,
+} from '@/local/views';
+import { useTitle, withSuspense } from '@/lib/page';
 import { Heading } from '@/components/Heading';
 import { MutationForm } from '@/components/MutationForm';
-import { accounts, categories } from '@/features/ledger/queries';
-import { budgets, rules, budgetStatus } from '@/features/planning/queries';
+import { budgetStatus } from '@/lib/budget';
 import { RuleForm } from '@/features/planning/RuleForm';
-import { saveBudget, removePlanItem } from '@/features/planning/actions';
+import { saveBudget, removePlanItem } from '@/local/actions';
 import { today, monthLabel, validDate, dateLabel } from '@/lib/dates';
 import { directions } from '@/lib/domain';
 import { money, percent } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
-export const metadata = { title: 'Planificación' };
-export default async function Planning({
-  searchParams,
-}: {
-  searchParams: Promise<{ mes?: string }>;
-}) {
+export default withSuspense(function Planning() {
+  useTitle('Planificación');
+  const book = useBook();
   const date = today();
-  const month = (await searchParams).mes || date.slice(0, 7);
+  const month = useSearchParams().get('mes') || date.slice(0, 7);
   if (!validDate(month + '-01'))
     return (
       <p role="alert">
         Mes inválido. <Link href="/planificacion">Ver mes actual</Link>
       </p>
     );
-  const [limits, schedule, list, tags] = await Promise.all([
-    budgets(month),
-    rules(),
-    accounts(),
-    categories(),
-  ]);
+  const limits = budgetProgress(book, month);
+  const schedule = ruleSchedule(book);
+  const list = accountBalances(book);
+  const tags = categoryList(book);
   const expenseTags = tags.filter((c) => c.type === 'expense');
   return (
     <>
@@ -123,7 +127,7 @@ export default async function Planning({
       <section className={[ui.panel, s.section].join(' ')}>
         <h2>Movimientos recurrentes</h2>
         <p>
-          Al abrir tu espacio se registran los vencimientos según la fecha de
+          Al abrir MiBalance se registran los vencimientos según la fecha de
           Córdoba.
         </p>
         {schedule.length ? (
@@ -132,7 +136,7 @@ export default async function Planning({
               <li key={r.id}>
                 <div>
                   <strong>{r.description || r.category_name}</strong>
-                  <span>{money(r.amount_cents)}</span>
+                  <span>{money(r.amount_cents, r.currency)}</span>
                 </div>
                 <p>
                   {directions[r.type]} · {r.account_name} ·{' '}
@@ -163,4 +167,4 @@ export default async function Planning({
       </section>
     </>
   );
-}
+});

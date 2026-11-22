@@ -1,7 +1,7 @@
 'use client';
 import { useRef } from 'react';
 import { MutationForm } from '@/components/MutationForm';
-import { saveTransfer } from './advanced-actions';
+import { saveTransfer } from '@/local/actions';
 import { decimal } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
 
@@ -30,7 +30,7 @@ export function TransferForm({
     }
     requestId.current ||= crypto.randomUUID();
     form.set('id', requestId.current);
-    const result = await saveTransfer(null, form);
+    const result = saveTransfer(null, form);
     if ('message' in result) requestId.current = '';
     return result;
   }

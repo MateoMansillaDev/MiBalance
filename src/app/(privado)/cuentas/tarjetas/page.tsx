@@ -1,36 +1,23 @@
+'use client';
 import Link from 'next/link';
+import { useBook } from '@/local/store';
+import { accountBalances } from '@/local/views';
+import { useTitle } from '@/lib/page';
 import { Heading } from '@/components/Heading';
-import { accounts, allRows } from '@/features/ledger/queries';
-import { requireUser } from '@/lib/supabase/server';
 import { addMonths, monthLabel, today } from '@/lib/dates';
 import { money } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
-export const metadata = { title: 'Tarjetas' };
 
-type Row = { account_id: string; occurred_on: string; amount_cents: string };
-export default async function Cards() {
-  const { db, user } = await requireUser();
-  const cards = (await accounts()).filter((a) => a.kind === 'credit');
+export default function Cards() {
+  useTitle('Tarjetas');
+  const book = useBook();
+  const cards = accountBalances(book).filter((a) => a.kind === 'credit');
   const start = today().slice(0, 7) + '-01';
-  const rows = cards.length
-    ? await allRows<Row>((offset) =>
-        db
-          .from('transactions')
-          .select('account_id,occurred_on,amount_cents::text')
-          .eq('user_id', user.id)
-          .eq('type', 'expense')
-          .in(
-            'account_id',
-            cards.map((c) => c.id),
-          )
-          .gte('occurred_on', start)
-          .order('occurred_on')
-          .order('id')
-          .range(offset, offset + 199)
-          .returns<Row[]>(),
-      )
-    : [];
+  const ids = new Set(cards.map((c) => c.id));
+  const rows = book
+    .live('transactions')
+    .filter((t) => t.type === 'expense' && ids.has(t.account_id) && t.occurred_on >= start);
   const months = Array.from({ length: 6 }, (_, i) =>
     addMonths(start, i).slice(0, 7),
   );

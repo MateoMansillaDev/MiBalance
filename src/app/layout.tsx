@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import { RegisterWorker } from '@/components/RegisterWorker';
-import { cookies } from 'next/headers';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { RegisterWorker } from '@/components/RegisterWorker';
 import '@/styles/globals.scss';
 
 const sans = Plus_Jakarta_Sans({
@@ -18,18 +17,15 @@ export const metadata: Metadata = {
   },
   appleWebApp: { capable: true, title: 'MiBalance' },
 };
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const theme = (await cookies()).get('mb-theme')?.value;
+// Aplica el tema guardado antes de pintar, para que no parpadee.
+const themeScript =
+  "try{var t=localStorage.getItem('mb-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}";
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="es-AR"
-      className={sans.variable}
-      data-theme={theme === 'dark' || theme === 'light' ? theme : undefined}
-    >
+    <html lang="es-AR" className={sans.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         {children}
         <RegisterWorker />

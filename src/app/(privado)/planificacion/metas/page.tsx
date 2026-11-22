@@ -1,13 +1,14 @@
+'use client';
 import Link from 'next/link';
+import { useBook } from '@/local/store';
+import { accountBalances } from '@/local/views';
+import { useTitle, withSuspense } from '@/lib/page';
 import { Heading } from '@/components/Heading';
 import { MutationForm } from '@/components/MutationForm';
-import { removeItem, saveGoal } from '@/features/accounts/advanced-actions';
-import { accounts, allRows } from '@/features/ledger/queries';
-import { requireUser } from '@/lib/supabase/server';
+import { removeItem, saveGoal } from '@/local/actions';
 import { money, decimal, percent } from '@/lib/money';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
-export const metadata = { title: 'Metas de ahorro' };
 
 type Goal = {
   id: string;
@@ -34,20 +35,14 @@ function GoalFields({ goal }: { goal?: Goal }) {
     </div>
   );
 }
-export default async function Goals() {
-  const { db, user } = await requireUser();
-  const [list, goals] = await Promise.all([
-    accounts(),
-    allRows<Goal>((offset) =>
-      db
-        .from('savings_goals')
-        .select('id,name,account_id,target_cents::text')
-        .eq('user_id', user.id)
-        .order('id')
-        .range(offset, offset + 199)
-        .returns<Goal[]>(),
-    ),
-  ]);
+export default withSuspense(function Goals() {
+  useTitle('Metas de ahorro');
+  const book = useBook();
+  const list = accountBalances(book);
+  const goals: Goal[] = book
+    .live('goals')
+    .map(({ id, name, account_id, target_cents }) => ({ id, name, account_id, target_cents }))
+    .sort((a, b) => a.id.localeCompare(b.id));
   const byAccount = new Map(list.map((a) => [a.id, a]));
   const assigned = new Set(goals.map((g) => g.account_id));
   const available = list.filter((a) => !assigned.has(a.id));
@@ -134,4 +129,4 @@ export default async function Goals() {
       </section>
     </>
   );
-}
+});

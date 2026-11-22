@@ -1,25 +1,40 @@
+'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 import { MutationForm } from '@/components/MutationForm';
-import { saveFilter, removePlanItem } from '@/features/planning/actions';
+import { removePlanItem, saveFilter } from '@/local/actions';
+import { useBook } from '@/local/store';
+import { filteredTotals } from '@/local/views';
 import { filterQuery, historyFilters, type Filters } from './filters';
-import { savedFilters, reportTotals } from './report';
+import { encodeCsv } from '@/features/csv/format';
 import { money } from '@/lib/money';
 import { CSV_ROWS } from '@/features/csv/limits';
+import type { Movement } from '@/lib/domain';
 import ui from '@/components/ui.module.scss';
 import s from '@/features/planning/planning.module.scss';
-export async function HistoryTools({
-  filters,
-  count,
-}: {
-  filters: Filters;
-  count: number;
-}) {
-  const [saved, report] = await Promise.all([
-    savedFilters(),
-    reportTotals(filters),
-  ]);
+
+// El CSV intercambia importes en pesos; las cuentas en dólares quedan afuera.
+function download(rows: Movement[], block: number) {
+  const pesos = rows.filter((r) => r.currency === 'ARS');
+  const slice = pesos.slice((block - 1) * CSV_ROWS, block * CSV_ROWS);
+  const url = URL.createObjectURL(
+    new Blob([encodeCsv(slice)], { type: 'text/csv;charset=utf-8' }),
+  );
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mibalance-' + block + '.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function HistoryTools({ filters, rows }: { filters: Filters; rows: Movement[] }) {
+  const book = useBook();
+  const saved = book.live('filters').sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const report = filteredTotals(rows);
   const query = filterQuery(filters);
-  const blocks = Math.max(1, Math.ceil(count / CSV_ROWS));
+  const pesoCount = rows.filter((r) => r.currency === 'ARS').length;
+  const blocks = Math.max(1, Math.ceil(pesoCount / CSV_ROWS));
+  const [block, setBlock] = useState(1);
   return (
     <section className={[ui.panel, s.section].join(' ')} aria-label="Reporte del historial">
       <h2>Reporte filtrado</h2>
@@ -34,33 +49,25 @@ export async function HistoryTools({
         </div>
         <div>
           <dt>Neto</dt>
-          <dd>{money(BigInt(report.income) - BigInt(report.expense))}</dd>
+          <dd>{money(report.income - report.expense)}</dd>
         </div>
       </dl>
       <div className={s.tools}>
-        {blocks === 1 ? (
-          <a className={ui.secondary} href={'/movimientos/exportar?' + query}>
-            Exportar CSV
-          </a>
-        ) : (
-          <form action="/movimientos/exportar" className={ui.actions}>
-            {Array.from(new URLSearchParams(query)).map(([key, value]) => (
-              <input type="hidden" key={key} name={key} value={value} />
-            ))}
-            <label>
-              Lote CSV (1–{blocks}){' '}
-              <input
-                name="lote"
-                type="number"
-                min="1"
-                max={blocks}
-                defaultValue="1"
-                required
-              />
-            </label>
-            <button className={ui.secondary}>Exportar CSV</button>
-          </form>
+        {blocks > 1 && (
+          <label>
+            Lote CSV (1–{blocks}){' '}
+            <input
+              type="number"
+              min="1"
+              max={blocks}
+              value={block}
+              onChange={(e) => setBlock(Math.min(blocks, Math.max(1, Number(e.target.value) || 1)))}
+            />
+          </label>
         )}
+        <button type="button" className={ui.secondary} onClick={() => download(rows, block)}>
+          Exportar CSV
+        </button>
         <Link href="/movimientos/importar">Importar CSV</Link>
       </div>
       <details className={s.disclosure}>
@@ -82,11 +89,7 @@ export async function HistoryTools({
               <Link
                 href={
                   '/movimientos?' +
-                  filterQuery(
-                    historyFilters(
-                      Object.fromEntries(new URLSearchParams(f.query)),
-                    ),
-                  )
+                  filterQuery(historyFilters(Object.fromEntries(new URLSearchParams(f.query))))
                 }
               >
                 {f.name}
