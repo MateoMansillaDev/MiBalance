@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { RegisterWorker } from '@/components/RegisterWorker';
-import { cookies } from 'next/headers';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { RegisterWorker } from '@/components/RegisterWorker';
+import { BASE } from '@/lib/base';
 import '@/styles/globals.scss';
 
 const sans = Plus_Jakarta_Sans({
@@ -13,23 +13,20 @@ export const metadata: Metadata = {
   title: { default: 'MiBalance', template: '%s · MiBalance' },
   description: 'Tus cuentas, ingresos y gastos personales en pesos argentinos.',
   icons: {
-    apple: '/icons/mibalance-192.png',
-    icon: '/icons/mibalance-192.png',
+    apple: BASE + '/icons/mibalance-192.png',
+    icon: BASE + '/icons/mibalance-192.png',
   },
   appleWebApp: { capable: true, title: 'MiBalance' },
 };
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const theme = (await cookies()).get('mb-theme')?.value;
+// Aplica el tema guardado antes de pintar, para que no parpadee.
+const themeScript =
+  "try{var t=localStorage.getItem('mb-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}";
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="es-AR"
-      className={sans.variable}
-      data-theme={theme === 'dark' || theme === 'light' ? theme : undefined}
-    >
+    <html lang="es-AR" className={sans.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         {children}
         <RegisterWorker />

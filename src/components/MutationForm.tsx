@@ -1,10 +1,11 @@
 'use client';
 import { useRef, useState, useTransition, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import ui from './ui.module.scss';
 
-export type Feedback = { error: string } | { message: string };
+export type Feedback = { error: string } | { message: string; go?: string };
 type Props = {
-  action: (form: FormData) => Promise<Feedback>;
+  action: (form: FormData) => Feedback | Promise<Feedback>;
   children?: ReactNode;
   submit: string;
   confirm?: string;
@@ -20,6 +21,7 @@ export function MutationForm({
   const [feedback, setFeedback] = useState<Feedback>();
   const [pending, start] = useTransition();
   const ref = useRef<HTMLFormElement>(null);
+  const router = useRouter();
   return (
     <form
       ref={ref}
@@ -32,6 +34,7 @@ export function MutationForm({
           const result = await action(values);
           setFeedback(result);
           if (resetOnSuccess && 'message' in result) ref.current?.reset();
+          if ('go' in result && result.go) router.push(result.go);
         });
       }}
     >

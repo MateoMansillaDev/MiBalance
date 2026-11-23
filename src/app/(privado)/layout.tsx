@@ -1,20 +1,38 @@
-import { cookies } from 'next/headers';
+'use client';
+import { useEffect } from 'react';
 import { Shell } from '@/components/Shell';
 import { PinLock } from '@/components/PinLock';
-import { requireUser } from '@/lib/supabase/server';
-import { PIN_COOKIE } from '@/lib/preferences';
-export default async function PrivateLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  await requireUser();
-  // La cookie solo indica que hay un PIN: así la pantalla de bloqueo se dibuja
-  // desde el servidor y los datos no aparecen ni un instante.
-  const pin = (await cookies()).get(PIN_COOKIE)?.value === '1';
+import { startStore, useStore } from '@/local/store';
+import ui from '@/components/ui.module.scss';
+
+export default function PrivateLayout({ children }: { children: React.ReactNode }) {
+  const store = useStore();
+  useEffect(() => {
+    void startStore();
+  }, []);
+  if (store.status === 'loading')
+    return (
+      <p role="status" className={ui.empty}>
+        Abriendo tus datos…
+      </p>
+    );
+  if (store.status === 'error')
+    return (
+      <main className={ui.errorPage}>
+        <h1>No pudimos abrir tus datos</h1>
+        <p>{store.message}</p>
+      </main>
+    );
   return (
-    <PinLock enabled={pin}>
-      <Shell>{children}</Shell>
+    <PinLock>
+      <Shell>
+        {store.saveError && (
+          <p role="alert" className={ui.notice}>
+            {store.saveError}
+          </p>
+        )}
+        {children}
+      </Shell>
     </PinLock>
   );
 }

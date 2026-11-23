@@ -1,4 +1,6 @@
-import { summary } from './queries';
+'use client';
+import { useBook } from '@/local/store';
+import { periodSummary } from '@/local/views';
 import { summarize } from '@/lib/summary';
 import { monthLabel, period, previousMonth, validDate } from '@/lib/dates';
 import { money } from '@/lib/money';
@@ -11,7 +13,7 @@ const rows = [
   ['expense', 'Gastos'],
   ['net', 'Saldo neto'],
 ] as const;
-export async function Comparison({
+export function Comparison({
   month,
   reference,
   current,
@@ -23,7 +25,8 @@ export async function Comparison({
   const other = reference ?? previousMonth(month);
   const valid = other && validDate(other + '-01') && other !== month;
   const range = valid ? period(other) : null;
-  const prior = range && summarize(await summary(range.start, range.end));
+  const book = useBook();
+  const prior = range && summarize(periodSummary(book, range.start, range.end));
   return (
     <section
       className={[ui.panel, ui.sectionGap].join(' ')}

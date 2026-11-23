@@ -1,7 +1,13 @@
 'use client';
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { save, remove, type Resource } from './actions';
+import { useRouter } from 'next/navigation';
+import {
+  removeInstallments,
+  removeRecord,
+  saveRecord,
+  type Resource,
+} from '@/local/actions';
 import {
   categoryIcons,
   currencies,
@@ -14,7 +20,6 @@ import {
 } from '@/lib/domain';
 import { decimal } from '@/lib/money';
 import { categoryColor, iconSet } from '@/lib/categoryIcons';
-import { removeInstallments } from '@/features/accounts/advanced-actions';
 import { MutationForm } from '@/components/MutationForm';
 import ui from '@/components/ui.module.scss';
 
@@ -31,15 +36,17 @@ function Form({
 }) {
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
+  const router = useRouter();
   return (
     <form
       className={ui.form}
       onSubmit={(event) => {
         event.preventDefault();
         const fields = new FormData(event.currentTarget);
-        start(async () => {
-          const result = await save(resource, id ?? null, {}, fields);
-          setError(result?.error ?? '');
+        start(() => {
+          const result = saveRecord(resource, id ?? null, fields);
+          if ('error' in result) setError(result.error);
+          else router.push(result.go ?? '/');
         });
       }}
     >
@@ -68,6 +75,7 @@ export function DeleteForm({
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
+  const router = useRouter();
   if (!confirm)
     return (
       <button
@@ -83,10 +91,10 @@ export function DeleteForm({
       className={ui.confirm}
       onSubmit={(event) => {
         event.preventDefault();
-        const form = new FormData(event.currentTarget);
-        start(async () => {
-          const result = await remove(resource, id, {}, form);
-          setError(result?.error ?? '');
+        start(() => {
+          const result = removeRecord(resource, id);
+          if ('error' in result) setError(result.error);
+          else router.push(result.go ?? '/');
         });
       }}
     >

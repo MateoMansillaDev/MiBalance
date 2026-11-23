@@ -1,49 +1,84 @@
-import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
-import { requireUser } from '@/lib/supabase/server';
-import { signOut } from '@/features/auth/actions';
+'use client';
+import { useState } from 'react';
+import { Archive, Cloud, Lock, Palette, Smartphone, type LucideIcon } from 'lucide-react';
 import { Heading } from '@/components/Heading';
 import { PinSettings } from '@/components/PinSettings';
+import { BackupTools } from '@/components/BackupTools';
+import { SyncPanel } from '@/components/SyncPanel';
+import { PREFS, readPref, writePref } from '@/lib/preferences';
+import { useTitle } from '@/lib/page';
 import ui from '@/components/ui.module.scss';
-export const metadata = { title: 'Configuración' };
-async function setTheme(form: FormData) {
-  'use server';
-  await requireUser();
-  const theme = String(form.get('theme'));
-  if (!['system', 'light', 'dark'].includes(theme)) return;
-  (await cookies()).set('mb-theme', theme, {
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: true,
-    maxAge: 31536000,
-  });
-  (await cookies()).set(
-    'mb-compare',
-    form.get('comparison') === 'on' ? 'show' : 'hide',
-    {
-      path: '/',
-      sameSite: 'lax',
-      httpOnly: true,
-      maxAge: 31536000,
-    },
-  );
-  revalidatePath('/', 'layout');
+import s from './settings.module.scss';
+
+function applyTheme(theme: string) {
+  const root = document.documentElement;
+  if (theme === 'dark' || theme === 'light') root.dataset.theme = theme;
+  else delete root.dataset.theme;
 }
-export default async function Settings() {
-  const { user } = await requireUser();
-  const prefs = await cookies();
-  const theme = prefs.get('mb-theme')?.value ?? 'system';
-  const showComparison = prefs.get('mb-compare')?.value !== 'hide';
+
+function Card({
+  icon: Icon,
+  title,
+  description,
+  size,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  size: 'wide' | 'side' | 'half' | 'quarter';
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={[ui.panel, s.card, s[size]].join(' ')} aria-label={title}>
+      <div className={s.head}>
+        <span className={ui.tile}>
+          <Icon size={20} aria-hidden="true" />
+        </span>
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+      <div className={s.body}>{children}</div>
+    </section>
+  );
+}
+
+export default function Settings() {
+  useTitle('Configuración');
+  const [theme, setTheme] = useState(() => readPref(PREFS.theme) ?? 'system');
+  const [compare, setCompare] = useState(() => readPref(PREFS.compare) !== 'hide');
   return (
     <>
-      <Heading title="Configuración" />
-      <div className={ui.catalog}>
-        <section className={ui.panel}>
-          <h2>Apariencia</h2>
-          <form action={setTheme} className={ui.form}>
+      <Heading title="Configuración" description="Preferencias de este dispositivo y tus datos." />
+      <div className={s.grid}>
+        <Card
+          size="wide"
+          icon={Cloud}
+          title="Google Drive"
+          description="Guardá tus datos en tu propio Drive, en una carpeta privada de la app, para usarlos en otros dispositivos y no perderlos. MiBalance no ve tus otros archivos."
+        >
+          <SyncPanel />
+        </Card>
+        <Card
+          size="side"
+          icon={Palette}
+          title="Apariencia"
+          description="Se aplica al instante en este dispositivo."
+        >
+          <div className={ui.form}>
             <label>
               Tema
-              <select name="theme" defaultValue={theme}>
+              <select
+                name="theme"
+                value={theme}
+                onChange={(e) => {
+                  setTheme(e.target.value);
+                  writePref(PREFS.theme, e.target.value);
+                  applyTheme(e.target.value);
+                }}
+              >
                 <option value="system">Según el sistema</option>
                 <option value="light">Claro</option>
                 <option value="dark">Oscuro</option>
@@ -54,41 +89,54 @@ export default async function Settings() {
                 <input
                   type="checkbox"
                   name="comparison"
-                  defaultChecked={showComparison}
-                />{' '}
+                  checked={compare}
+                  onChange={(e) => {
+                    setCompare(e.target.checked);
+                    writePref(PREFS.compare, e.target.checked ? 'show' : 'hide');
+                  }}
+                />
                 Mostrar comparativa mensual en Resumen
               </span>
             </label>
-            <button className={ui.secondary}>Guardar preferencia</button>
-          </form>
-        </section>
-        <section className={ui.panel}>
-          <h2>Bloqueo con PIN</h2>
+          </div>
+        </Card>
+        <Card
+          size="half"
+          icon={Lock}
+          title="Bloqueo con PIN"
+          description="Pide un PIN al abrir MiBalance y tras 5 minutos en segundo plano."
+        >
           <PinSettings />
-        </section>
-        <section className={ui.panel}>
-          <h2>Tu sesión</h2>
-          <p>{user.email}</p>
-          <form action={signOut}>
-            <button className={ui.secondary}>Cerrar sesión</button>
-          </form>
-        </section>
-        <section className={ui.panel}>
-          <h2>Instalar MiBalance</h2>
-          <p>
-            En Chrome o Edge, elegí instalar desde el menú del navegador. En
-            Safari de iPhone, usá Compartir y Agregar a inicio.
-          </p>
-          <p>
-            Necesitás conexión para consultar tus saldos y registrar
-            operaciones.
-          </p>
-        </section>
-        <section className={ui.panel}>
-          <h2>Preferencias regionales</h2>
-          <p>Peso argentino (ARS)</p>
-          <p>Zona horaria de Córdoba, Argentina</p>
-        </section>
+        </Card>
+        <Card
+          size="quarter"
+          icon={Archive}
+          title="Respaldo"
+          description="Un archivo con todos tus datos. Al restaurarlo se combina con lo que ya tenés."
+        >
+          <BackupTools />
+        </Card>
+        <Card
+          size="quarter"
+          icon={Smartphone}
+          title="Instalar la app"
+          description="En Chrome o Edge: Instalar desde el menú. En iPhone: Compartir → Agregar a inicio."
+        >
+          <ul className={s.facts}>
+            <li>
+              <span>Sin conexión</span>
+              <span>Sí</span>
+            </li>
+            <li>
+              <span>Moneda</span>
+              <span>ARS y USD</span>
+            </li>
+            <li>
+              <span>Zona horaria</span>
+              <span>Córdoba</span>
+            </li>
+          </ul>
+        </Card>
       </div>
     </>
   );

@@ -1,5 +1,17 @@
+'use client';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
+import { useSearchParams } from 'next/navigation';
+import { useBook } from '@/local/store';
+import {
+  accountBalances,
+  budgetProgress,
+  filteredHistory,
+  monthlyTotals,
+  periodSummary,
+  ruleSchedule,
+} from '@/local/views';
+import { useTitle, withSuspense } from '@/lib/page';
+import { PREFS, readPref } from '@/lib/preferences';
 import { Comparison } from '@/features/ledger/Comparison';
 import {
   ArrowDownLeft,
@@ -9,15 +21,6 @@ import {
 } from 'lucide-react';
 import { Heading } from '@/components/Heading';
 import { MovementList } from '@/features/ledger/MovementList';
-import {
-  accounts,
-  categories,
-  exchangeRate,
-  history,
-  monthlyTotals,
-  summary,
-} from '@/features/ledger/queries';
-import { recurringRules } from '@/features/insights/queries';
 import {
   Changes,
   Projection,
@@ -33,8 +36,6 @@ import {
 } from '@/lib/insights';
 import { categoryColor } from '@/lib/categoryIcons';
 import { AccountBalances } from '@/features/ledger/AccountBalances';
-import { HIDE_BALANCES_COOKIE } from '@/lib/preferences';
-import { historyFilters } from '@/features/ledger/filters';
 import {
   addDays,
   addMonths,
@@ -47,20 +48,17 @@ import {
 } from '@/lib/dates';
 import { money, percent, usdToArs } from '@/lib/money';
 import { summarize } from '@/lib/summary';
-import { budgets, budgetStatus } from '@/features/planning/queries';
+import { budgetStatus } from '@/lib/budget';
 import ui from '@/components/ui.module.scss';
 import s from './dashboard.module.scss';
-export const metadata = { title: 'Resumen' };
 
-export default async function Dashboard({
-  searchParams,
-}: {
-  searchParams: Promise<{ mes?: string; comparar?: string }>;
-}) {
-  const { mes, comparar } = await searchParams;
-  const prefs = await cookies();
-  const showComparison = prefs.get('mb-compare')?.value !== 'hide';
-  const hideBalances = prefs.get(HIDE_BALANCES_COOKIE)?.value === '1';
+export default withSuspense(function Dashboard() {
+  useTitle('Resumen');
+  const book = useBook();
+  const search = useSearchParams();
+  const mes = search.get('mes') ?? undefined;
+  const comparar = search.get('comparar') ?? undefined;
+  const showComparison = readPref(PREFS.compare) !== 'hide';
   const month = mes || today().slice(0, 7);
   if (!validDate(month + '-01'))
     return (
@@ -78,19 +76,15 @@ export default async function Dashboard({
   const soon = addDays(now, 7);
   const prior = previousMonth(month);
   const trendStart = addMonths(start, -5);
-  const [groups, recent, limits, wallets, tags, rate, trend, before, future] =
-    await Promise.all([
-      summary(start, end),
-      history(historyFilters({ desde: start, hasta: end }), 5),
-      budgets(month),
-      accounts(),
-      categories(),
-      exchangeRate(),
-      monthlyTotals(trendStart, end),
-      prior ? summary(period(prior).start, period(prior).end) : [],
-      history(historyFilters({ desde: addDays(now, 1), hasta: soon }), 20),
-    ]);
-  const rules = await recurringRules(wallets, tags);
+  const groups = periodSummary(book, start, end);
+  const recent = { rows: filteredHistory(book, { desde: start, hasta: end }).slice(0, 5) };
+  const limits = budgetProgress(book, month);
+  const wallets = accountBalances(book);
+  const rate = book.rate();
+  const trend = monthlyTotals(book, trendStart, end);
+  const before = prior ? periodSummary(book, period(prior).start, period(prior).end) : [];
+  const future = { rows: filteredHistory(book, { desde: addDays(now, 1), hasta: soon }, true).slice(0, 20) };
+  const rules = ruleSchedule(book);
 
   // Saldos: pesos disponibles, dólares estimados con la cotización y deuda de tarjetas.
   const sum = (list: typeof wallets) =>
@@ -214,7 +208,6 @@ export default async function Dashboard({
             amount: money(balance < 0n ? -balance : 0n, a.currency),
           };
         })}
-        initiallyHidden={hideBalances}
       />
       <div className={s.metrics}>
         {[
@@ -351,4 +344,4 @@ export default async function Dashboard({
       )}
     </>
   );
-}
+});

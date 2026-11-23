@@ -4,12 +4,12 @@ import ui from '@/components/ui.module.scss';
 export default function ErrorPage({ reset }: { reset: () => void }) {
   return (
     <main className={ui.errorPage}>
-      <h1>No pudimos cargar tu espacio</h1>
-      <p>Revisá la conexión y la configuración de Supabase.</p>
+      <h1>Algo salió mal</h1>
+      <p>Tus datos siguen guardados en este dispositivo. Probá de nuevo.</p>
       <button className={ui.primary} onClick={reset}>
         Reintentar
       </button>{' '}
-      <Link href="/ingresar">Volver al acceso</Link>
+      <Link href="/resumen/">Volver al resumen</Link>
     </main>
   );
 }

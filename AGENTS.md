@@ -19,6 +19,8 @@ Construir una aplicación web **real, privada, responsive y mantenible** para re
 
 ## 2. Stack tecnológico
 
+> **Desde la fase 5** los datos ya no usan Supabase: viven en el dispositivo (`src/local/`) y la app se exporta como sitio estático. Las secciones de Supabase, RLS y autenticación por correo describen fases anteriores; las reglas de dominio siguen vigentes y se aplican en `src/local/book.ts`.
+
 - **Next.js** con **App Router**, **React**, **TypeScript** en modo estricto.
 - **SCSS Modules** y variables/tokens de diseño; no Tailwind, salvo autorización expresa.
 - **Supabase**: PostgreSQL para persistencia y Supabase Auth para autenticación.
@@ -71,6 +73,17 @@ Antes de añadir dependencias o usar API que puedan haber cambiado, consultar do
 - Cuentas en USD, compra y venta de dólares con dos importes y cotización de referencia manual; los resúmenes en ARS no mezclan monedas.
 - Proyección de fin de mes, tendencia de seis meses, cambios por categoría y próximos vencimientos.
 - Edición de transferencias, colores e íconos de categoría, íconos de la PWA y bloqueo local con PIN.
+
+### Fase 5 — Local-first con Google Drive y app Android (autorizada por el usuario)
+
+Decisión del usuario: los datos dejan de vivir en Supabase. Viven en el dispositivo y se sincronizan con un archivo en su propio Google Drive. La app se empaqueta para Android con Capacitor.
+
+- **Etapa 1 — núcleo local** (`src/local/`): documento con un registro por id, sellos de modificación y lápidas; `Book` aplica las reglas que antes imponía PostgreSQL; `views.ts` reemplaza vistas y funciones; `merge.ts` combina copias (gana la última escritura, conmutativa e idempotente); IDs estables para sugerencias, vencimientos y cuotas para no duplicar entre dispositivos; persistencia en IndexedDB.
+- **Etapa 2 — pantallas**: componentes cliente sobre el núcleo local, sin Supabase, server actions ni middleware; `output: 'export'`.
+- **Etapa 3 — Drive**: inicio de sesión con Google, scope no sensible `drive.appdata`, archivo único en la carpeta de datos de la app, combinar antes de subir.
+- **Etapa 4 — Android**: Capacitor, inicio de sesión nativo de Google, APK.
+
+Reglas de esta fase: el documento leído de Drive o del dispositivo se valida con Zod antes de usarse; ningún secreto de cliente OAuth en el código; los importes siguen en centavos como texto y se suman con `bigint`; Supabase y sus pruebas se retiran recién cuando la etapa 2 esté verificada.
 
 **No avanzar de fase sin autorización del usuario.**
 

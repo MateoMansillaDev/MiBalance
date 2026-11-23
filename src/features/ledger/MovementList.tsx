@@ -28,7 +28,7 @@ export function MovementList({
     <ul className={ui.movements}>
       {rows.map((row) => (
         <li key={row.id}>
-          <Link href={'/movimientos/' + row.id}>
+          <Link href={'/movimientos/editar?id=' + row.id}>
             <span className={row.type === 'income' ? ui.up : ui.down}>
               {row.type === 'income' ? (
                 <ArrowDownLeft size={18} />

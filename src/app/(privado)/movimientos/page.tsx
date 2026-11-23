@@ -1,23 +1,32 @@
+'use client';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Heading } from '@/components/Heading';
-import { accounts, categories, history } from '@/features/ledger/queries';
-import { historyFilters, type Params } from '@/features/ledger/filters';
+import { useBook } from '@/local/store';
+import {
+  accountBalances,
+  categoryList,
+  filteredHistory,
+} from '@/local/views';
+import { filterCriteria, historyFilters } from '@/features/ledger/filters';
+import { paramsOf, useTitle, withSuspense } from '@/lib/page';
 import { MovementList } from '@/features/ledger/MovementList';
 import { HistoryTools } from '@/features/ledger/HistoryTools';
 import ui from '@/components/ui.module.scss';
-export const metadata = { title: 'Movimientos' };
-export default async function HistoryPage({
-  searchParams,
-}: {
-  searchParams: Promise<Params>;
-}) {
-  const params = await searchParams;
+export default withSuspense(function HistoryPage() {
+  useTitle('Movimientos');
+  const book = useBook();
+  const params = paramsOf(useSearchParams());
   const filters = historyFilters(params);
-  const [list, tags, result] = await Promise.all([
-    accounts(),
-    categories(),
-    filters.invalid ? null : history(filters),
-  ]);
+  const list = accountBalances(book);
+  const tags = categoryList(book);
+  const all = filters.invalid
+    ? null
+    : filteredHistory(book, filterCriteria(filters), filters.ascending);
+  const result = all && {
+    rows: all.slice((filters.page - 1) * 20, filters.page * 20),
+    count: all.length,
+  };
   function pageLink(page: number) {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(params))
@@ -94,7 +103,7 @@ export default async function HistoryPage({
           <Link href="/movimientos">Limpiar</Link>
         </div>
       </form>
-      {result && <HistoryTools filters={filters} count={result.count} />}
+      {all && <HistoryTools filters={filters} rows={all} />}
       {result ? (
         <section className={ui.panel}>
           <h2>
@@ -126,4 +135,4 @@ export default async function HistoryPage({
       )}
     </>
   );
-}
+});
