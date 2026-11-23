@@ -1,4 +1,6 @@
 import type { MetadataRoute } from 'next';
+// La exportación estática necesita que el manifest se genere una sola vez al compilar.
+export const dynamic = 'force-static';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/',

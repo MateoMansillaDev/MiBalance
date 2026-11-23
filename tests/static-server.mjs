@@ -33,9 +33,14 @@ createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   const file = await resolveFile(url.pathname);
   const target = file ?? path.join(root, '404.html');
-  const body = await readFile(target);
-  res.writeHead(file ? 200 : 404, {
-    'Content-Type': types[path.extname(target)] ?? 'application/octet-stream',
-  });
-  res.end(body);
+  try {
+    const body = await readFile(target);
+    res.writeHead(file ? 200 : 404, {
+      'Content-Type': types[path.extname(target)] ?? 'application/octet-stream',
+    });
+    res.end(body);
+  } catch {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('No encontrado. ¿Corriste npm run build?');
+  }
 }).listen(port, '127.0.0.1');
