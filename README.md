@@ -76,6 +76,13 @@ npm run test:e2e
 
 `npm test` cubre el núcleo local (reglas, cuotas, monedas, repeticiones, combinación entre dispositivos, CSV), importes, fechas y análisis. `npm run build` genera el sitio estático en `out/`; Playwright lo sirve con `tests/static-server.mjs` en el puerto 3187 y prueba los recorridos en escritorio y celular, cada uno con almacenamiento vacío. Para servir la compilación a mano: `npm start`.
 
+## Seguridad
+
+- **Política de contenido en cada página.** Después de `next build`, `scripts/csp.mjs` agrega a cada página de `out/` una política que solo permite el código propio, el inicio de sesión de Google y conexiones con Google (Drive y la cuenta). Los scripts que Next.js incrusta se permiten por su huella exacta, sin `unsafe-inline`. Si alguien lograra colar código, el navegador no lo dejaría mandar datos a otro sitio.
+- **Encabezados en Vercel** (`vercel.json`): no se puede mostrar la app dentro de otro sitio (`frame-ancestors 'none'`), `nosniff`, política de referencia, permisos del navegador desactivados (cámara, micrófono, ubicación, pagos), HTTPS obligatorio y `Cross-Origin-Opener-Policy` compatible con la ventana de Google.
+- Sin servidor ni base de datos propia: los datos de cada persona están en su dispositivo y en su Drive. El token de Google vive en memoria y solo da acceso a la carpeta de la app.
+- Lo que depende de cada persona: proteger sus cuentas de GitHub, Vercel y Google con verificación en dos pasos, y no compartir el usuario de Windows ni el perfil del navegador.
+
 ## Publicación
 
 `out/` es un sitio estático: se puede publicar en cualquier hosting de archivos con HTTPS (Vercel, Netlify, GitHub Pages). No hay variables ni base de datos que configurar. Cada persona que lo abre tiene sus propios datos en su dispositivo.

@@ -129,7 +129,16 @@ test('transferir, metas, comparación, saldos ocultos, cuotas, dólares y PIN', 
 });
 
 test('Chromium reconoce la PWA y abre los datos sin conexión', async ({ page, context }) => {
+  // La política de seguridad no debe bloquear nada de la propia app.
+  const blocked: string[] = [];
+  page.on('console', (m) => {
+    if (/Content Security Policy|Content-Security-Policy/i.test(m.text())) blocked.push(m.text());
+  });
   await open(page);
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
+  await page.getByRole('link', { name: 'Movimientos', exact: true }).click();
+  await page.getByRole('link', { name: 'Configuración', exact: true }).click();
+  await page.getByRole('link', { name: 'Resumen', exact: true }).click();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
@@ -145,4 +154,5 @@ test('Chromium reconoce la PWA y abre los datos sin conexión', async ({ page, c
   await expect(page.getByRole('heading', { name: 'Resumen', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Dinero en tus cuentas' })).toContainText('Efectivo');
   await context.setOffline(false);
+  expect(blocked).toEqual([]);
 });
