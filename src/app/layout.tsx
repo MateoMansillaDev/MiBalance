@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { RegisterWorker } from '@/components/RegisterWorker';
+import { BASE } from '@/lib/base';
 import '@/styles/globals.scss';
 
 const sans = Plus_Jakarta_Sans({
@@ -12,8 +13,8 @@ export const metadata: Metadata = {
   title: { default: 'MiBalance', template: '%s · MiBalance' },
   description: 'Tus cuentas, ingresos y gastos personales en pesos argentinos.',
   icons: {
-    apple: '/icons/mibalance-192.png',
-    icon: '/icons/mibalance-192.png',
+    apple: BASE + '/icons/mibalance-192.png',
+    icon: BASE + '/icons/mibalance-192.png',
   },
   appleWebApp: { capable: true, title: 'MiBalance' },
 };

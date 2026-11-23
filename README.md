@@ -83,6 +83,14 @@ npm run test:e2e
 - Sin servidor ni base de datos propia: los datos de cada persona están en su dispositivo y en su Drive. El token de Google vive en memoria y solo da acceso a la carpeta de la app.
 - Lo que depende de cada persona: proteger sus cuentas de GitHub, Vercel y Google con verificación en dos pasos, y no compartir el usuario de Windows ni el perfil del navegador.
 
-## Publicación
+## Publicación en GitHub Pages
 
-`out/` es un sitio estático: se puede publicar en cualquier hosting de archivos con HTTPS (Vercel, Netlify, GitHub Pages). No hay variables ni base de datos que configurar. Cada persona que lo abre tiene sus propios datos en su dispositivo.
+`.github/workflows/pages.yml` publica la app en `https://<usuario>.github.io/<repositorio>/` con cada cambio en `main`: instala dependencias, corre lint y pruebas, compila con la subcarpeta del repositorio (`NEXT_PUBLIC_BASE_PATH`) y publica `out/`.
+
+Una sola vez:
+
+1. En GitHub, **Settings → General → Danger Zone → Change visibility → Public**. En el plan gratuito, GitHub Pages solo funciona con repositorios públicos. El código no contiene secretos: el ID de cliente de Google es público y los datos de cada persona están en su dispositivo y en su Drive.
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. En el cliente web de Google (Google Auth Platform → Clientes), agregá el origen `https://<usuario>.github.io` (sin la subcarpeta).
+
+GitHub Pages no permite configurar encabezados HTTP, así que ahí rige la política de seguridad incluida en cada página; los encabezados de `vercel.json` se aplican solo si se publica en Vercel.

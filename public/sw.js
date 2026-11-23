@@ -2,7 +2,9 @@
 // se guardan copias de las páginas y los recursos ya visitados. Las páginas se
 // piden primero a la red (para recibir actualizaciones) y los recursos con
 // nombre versionado se sirven desde la caché.
-const CACHE = 'mibalance-v2';
+const CACHE = 'mibalance-v3';
+// Carpeta donde vive la app (vacía en la raíz, /MiBalance en GitHub Pages).
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, '');
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -16,7 +18,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/_next/static/')) {
+  if (url.pathname.startsWith(BASE + '/_next/static/')) {
     event.respondWith(
       caches.match(request).then(
         (hit) =>
@@ -45,11 +47,11 @@ async function fromNetwork(request) {
     const hit = await caches.match(request);
     if (hit) return hit;
     if (request.mode === 'navigate') {
-      const home = await caches.match('/resumen/');
+      const home = await caches.match(BASE + '/resumen/');
       if (home) return home;
     }
     return new Response(
-      '<!doctype html><html lang="es-AR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MiBalance sin conexión</title><main><h1>Necesitás conexión</h1><p>Abrí MiBalance una vez con conexión para usarlo sin internet.</p><a href="/">Reintentar</a></main></html>',
+      '<!doctype html><html lang="es-AR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MiBalance sin conexión</title><main><h1>Necesitás conexión</h1><p>Abrí MiBalance una vez con conexión para usarlo sin internet.</p><a href="' + BASE + '/">Reintentar</a></main></html>',
       { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
     );
   }
