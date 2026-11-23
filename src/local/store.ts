@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from 'react';
 import { today } from '@/lib/dates';
 import { Book, DomainError } from './book';
-import { deviceId, loadDoc, saveDoc } from './persist';
+import { deviceId, loadDoc, openDb, saveDoc } from './persist';
 import { merge } from './merge';
 import type { Doc } from './schema';
 
@@ -16,27 +16,27 @@ type State =
 let state: State = { status: 'loading' };
 let device = '';
 let started: Promise<void> | null = null;
-let queue: Promise<unknown> = Promise.resolve();
+let db: IDBDatabase | null = null;
 const listeners = new Set<() => void>();
 function emit(next: State) {
   state = next;
   for (const l of listeners) l();
 }
 function persist(doc: Doc) {
-  queue = queue
-    .then(() => saveDoc(doc))
-    .then(
+  if (!db) return Promise.resolve();
+  // La transacción se crea ahora mismo, no en una tarea posterior.
+  return saveDoc(db, doc).then(
       () => state.status === 'ready' && state.saveError && emit({ ...state, saveError: '' }),
       () =>
         state.status === 'ready' &&
         emit({ ...state, saveError: 'No se pudieron guardar los cambios en este dispositivo.' }),
     );
-  return queue;
 }
 export function startStore() {
   started ??= (async () => {
     try {
-      const [doc, id] = await Promise.all([loadDoc(), deviceId()]);
+      db = await openDb();
+      const [doc, id] = await Promise.all([loadDoc(db), deviceId(db)]);
       device = id;
       const book = new Book(doc, device);
       book.refresh(today());

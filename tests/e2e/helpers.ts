@@ -33,7 +33,7 @@ export async function newAccount(page: Page, name: string, kind?: string, curren
   await page.getByRole('link', { name: 'Nueva cuenta' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(name);
   if (kind) await page.getByLabel('Tipo de cuenta').selectOption(kind);
-  if (currency) await page.getByLabel('Moneda').selectOption(currency);
+  if (currency) await page.getByLabel('Moneda', { exact: true }).selectOption(currency);
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
 }
