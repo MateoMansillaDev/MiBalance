@@ -136,9 +136,10 @@ test('Chromium reconoce la PWA y abre los datos sin conexión', async ({ page, c
   });
   await open(page);
   await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
-  await page.getByRole('link', { name: 'Movimientos', exact: true }).click();
-  await page.getByRole('link', { name: 'Configuración', exact: true }).click();
-  await page.getByRole('link', { name: 'Resumen', exact: true }).click();
+  for (const name of ['Movimientos', 'Configuración', 'Resumen']) {
+    await page.getByRole('link', { name, exact: true }).click();
+    await expect(page.getByRole('heading', { name, exact: true, level: 1 })).toBeVisible();
+  }
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
