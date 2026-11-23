@@ -40,8 +40,34 @@ export async function loadDoc(db: IDBDatabase): Promise<Doc> {
   const text = await read(db, 'doc');
   return text ? parseDoc(text) : emptyDoc();
 }
-export function saveDoc(db: IDBDatabase, doc: Doc) {
-  return write(db, 'doc', JSON.stringify(doc));
+export function saveDoc(db: IDBDatabase, text: string) {
+  return write(db, 'doc', text);
+}
+
+// Bitácora sincrónica: IndexedDB es asíncrono y el navegador cancela las
+// escrituras sin terminar al recargar o cerrar la página. Cada cambio se anota
+// primero en localStorage, que se escribe en el acto, y se borra cuando
+// IndexedDB confirma. Al abrir, una bitácora pendiente se combina con lo guardado.
+const JOURNAL = 'mb-journal';
+export function journal(text: string) {
+  try {
+    localStorage.setItem(JOURNAL, text);
+  } catch {
+    // Sin espacio en localStorage: queda solo IndexedDB.
+  }
+}
+export function clearJournal(text: string) {
+  try {
+    if (localStorage.getItem(JOURNAL) === text) localStorage.removeItem(JOURNAL);
+  } catch {}
+}
+export function pendingJournal(): Doc | null {
+  try {
+    const text = localStorage.getItem(JOURNAL);
+    return text ? parseDoc(text) : null;
+  } catch {
+    return null;
+  }
 }
 export async function deviceId(db: IDBDatabase) {
   let id = await read(db, 'device');

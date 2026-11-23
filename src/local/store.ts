@@ -2,7 +2,15 @@
 import { useSyncExternalStore } from 'react';
 import { today } from '@/lib/dates';
 import { Book, DomainError } from './book';
-import { deviceId, loadDoc, openDb, saveDoc } from './persist';
+import {
+  clearJournal,
+  deviceId,
+  journal,
+  loadDoc,
+  openDb,
+  pendingJournal,
+  saveDoc,
+} from './persist';
 import { merge } from './merge';
 import type { Doc } from './schema';
 
@@ -24,21 +32,29 @@ function emit(next: State) {
 }
 function persist(doc: Doc) {
   if (!db) return Promise.resolve();
+  const text = JSON.stringify(doc);
+  journal(text);
   // La transacción se crea ahora mismo, no en una tarea posterior.
-  return saveDoc(db, doc).then(
-      () => state.status === 'ready' && state.saveError && emit({ ...state, saveError: '' }),
-      () =>
-        state.status === 'ready' &&
-        emit({ ...state, saveError: 'No se pudieron guardar los cambios en este dispositivo.' }),
-    );
+  return saveDoc(db, text).then(
+    () => {
+      clearJournal(text);
+      if (state.status === 'ready' && state.saveError) emit({ ...state, saveError: '' });
+    },
+    () => {
+      if (state.status === 'ready')
+        emit({ ...state, saveError: 'No se pudieron guardar los cambios en este dispositivo.' });
+    },
+  );
 }
 export function startStore() {
   started ??= (async () => {
     try {
       db = await openDb();
-      const [doc, id] = await Promise.all([loadDoc(db), deviceId(db)]);
+      const [stored, id] = await Promise.all([loadDoc(db), deviceId(db)]);
       device = id;
-      const book = new Book(doc, device);
+      // Un cambio que no llegó a IndexedDB antes de recargar queda en la bitácora.
+      const pending = pendingJournal();
+      const book = new Book(pending ? merge(stored, pending) : stored, device);
       book.refresh(today());
       emit({ status: 'ready', book, saveError: '' });
       await persist(book.doc);
